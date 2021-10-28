@@ -4,8 +4,15 @@
 // Communication with Raspberry using SPI. MOSI: D11/29, MISO D12/30, SCL: D10/PWM/28, SS: D13/1
 // https://forum.arduino.cc/t/arduino-as-spi-slave/52206/2
 
+// Or I2C
+// Raspi Code: https://www.mikrocontroller.net/topic/415271
+// Arduino Code: https://www.arduino.cc/en/Tutorial/LibraryExamples/MasterReader
+
+
 // Force Measurement as analog signal: A0
 // Synchronization with IR-Signal: 5/A1
+
+#include <Arduino_LSM6DS3.h> // Accelerometer
 
 // Constants
 #define FORCE_SIZE 4096
@@ -16,8 +23,8 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 
 // Pin Setup
 // https://docs.arduino.cc/static/a84e4a994129669058db835f17f8ca9d/ABX00032%20(with%20headers)-datasheet.pdf
-int analogForcePin = 4;   // A0
-int syncSignalPin = 21;   // D3
+int analogForcePin = A0;   // A0 - Use whole name for analog pins
+int syncSignalPin = 3;   // D3 - Just use number for digital pins
 
 
 // Global variables
@@ -45,9 +52,10 @@ void setup() {
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
 
 
+  // Setup Gyro and Accerelometer
+  IMU.begin();
  
   pinMode(LED_BUILTIN, OUTPUT);
-
 }
 
 void loop() {
@@ -83,6 +91,17 @@ void loop() {
   }
 
 
+  // Accelerometer and Gyro
+  float accX, accY, accZ;
+  if (IMU.accelerationAvailable()) {
+    IMU.readAcceleration(accX, accY, accZ);
+  }
+
+  float gyroX, gyroY, gyroZ;
+  if (IMU.gyroscopeAvailable()) {
+    IMU.readGyroscope(gyroX, gyroY, gyroZ);
+  }
+
 delay(250);
 
  /* digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
@@ -94,7 +113,7 @@ delay(250);
 
 
 // --------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------
+// ---------------------FORCE SENSOR-----------------------------------------------
 // --------------------------------------------------------------------------------
 
 
@@ -106,9 +125,9 @@ float ReadForceSensor() {
   forceVector[currentForceIndex] = analogValue;
 
   // Check if Sync Signal was set
-  static bool oldSync = false;
-  bool syncSignal = digitalRead(syncSignalPin);
-  if (oldSync != syncSignal && syncSignal == true) {
+  static PinStatus oldSync = LOW;
+  PinStatus syncSignal = digitalRead(syncSignalPin);
+  if (oldSync != syncSignal && syncSignal == HIGH) {
     syncIndex = currentForceIndex;
   }
   oldSync = syncSignal;
@@ -132,3 +151,8 @@ float GetForceFromMeasurement(int rawValue) {
   float force = maxForceRange * voltage / 3.3;
   return force;
 }
+
+
+// --------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------

@@ -1,22 +1,18 @@
 // Firmware of the Arduino Nano 33 Iot.
 // Version 0.1
 
-// Communication with Raspberry using SPI. MOSI: D11/29, MISO D12/30, SCL: D10/PWM/28, SS: D13/1
-// https://forum.arduino.cc/t/arduino-as-spi-slave/52206/2
-
-// Or I2C
-// Raspi Code: https://www.mikrocontroller.net/topic/415271
-// Arduino Code: https://www.arduino.cc/en/Tutorial/LibraryExamples/MasterReader
-
+// Communication with Raspberry using I2C
 
 // Force Measurement as analog signal: A0
 // Synchronization with IR-Signal: 5/A1
 
-#include <Arduino_LSM6DS3.h> // Accelerometer
+#include <Wire.h>               // I2C Communication with Raspberry
 
 // Constants
 #define FORCE_SIZE 4096
+#define I2C_ADDR 0x05         // Address in I2C bus
 float maxForceRange = 300.0f;   // in Newton -> ToDo Check with Sensor
+
 
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 
@@ -34,26 +30,30 @@ int syncIndex = 0;                  // Stores the index of synchronization -> IR
 int currentForceIndex = 0;          // Stores the index where the measurement should be stored
 
 // Function Prototypes
-float ReadForceSensor();
-float GetForceFromMeasurement( int rawValue);
+float ReadForceSensor();                          // Get current Force
+float GetForceFromMeasurement( int rawValue);     // Convert Raw data
 
+void SendToRaspyEvent();                // I2C send to Raspy
+void GetFromRaspyEvent(int howMany);     // I2C get from Raspy
+
+
+// ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
 
 void setup() {
   // Communication Debug
   Serial.begin(9600);     // For Debugging -> use output window or h-term
 
-  // Setup Communication Raspberry
-  // ToDo
+  // Setup Communication Raspberry via I2C
+  Wire.begin(I2C_ADDR);    // Join Bus
+  Wire.onRequest(SendToRaspyEvent);     // register Send to Raspy event
+  Wire.onReceive(GetFromRaspyEvent);     // register get from Raspy event
 
   // Setup Force
   pinMode(analogForcePin, INPUT);
   analogReadResolution(10);   // Set Resolution of Force sensor to max 10 Bit
 
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
-
-
-  // Setup Gyro and Accerelometer
-  IMU.begin();
  
   pinMode(LED_BUILTIN, OUTPUT);
 }
@@ -91,24 +91,7 @@ void loop() {
   }
 
 
-  // Accelerometer and Gyro
-  float accX, accY, accZ;
-  if (IMU.accelerationAvailable()) {
-    IMU.readAcceleration(accX, accY, accZ);
-  }
-
-  float gyroX, gyroY, gyroZ;
-  if (IMU.gyroscopeAvailable()) {
-    IMU.readGyroscope(gyroX, gyroY, gyroZ);
-  }
-
 delay(250);
-
- /* digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);                       // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(250);   
-  */ 
 }
 
 
@@ -154,5 +137,22 @@ float GetForceFromMeasurement(int rawValue) {
 
 
 // --------------------------------------------------------------------------------
+// -----------------------------------I2C------------------------------------------
 // --------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------
+void SendToRaspyEvent() {
+  Serial.println("Write Force Vector to Raspy...");   // Debug
+
+  Wire.write ( (byte *) &forceVector[0], sizeof(forceVector[0])*FORCE_SIZE);
+
+  //Wire.write(&forceVector[0], sizeof(forceVector)); 
+}
+
+void GetFromRaspyEvent(int howMany) {
+  while(Wire.available()) { // loop through all but the last
+    int c = Wire.read(); // receive byte as a character
+    Serial.print("Got something ");
+    Serial.print(c);
+    Serial.print("\r\n");
+  }
+}
+

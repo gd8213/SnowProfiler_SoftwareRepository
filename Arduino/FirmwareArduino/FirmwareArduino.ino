@@ -4,7 +4,7 @@
 // Communication with Raspberry using I2C
 
 // Force Measurement as analog signal: A0
-// Synchronization with IR-Signal: 5/A1
+// Synchronization with IR-Signal: D3
 
 #include <Wire.h>               // I2C Communication with Raspberry
 

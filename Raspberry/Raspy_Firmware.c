@@ -3,7 +3,10 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <unistd.h>     // for read/write of I2C
+#include <stdlib.h>     // USB cam system call
+#include <time.h>       // Get date and time to save recording
 
+#define DEBUG
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
 
@@ -15,6 +18,7 @@ int length;
 int i;
 
 float forceVec[FORCE_SIZE] = { 0 };
+float accelVec[FORCE_SIZE] = { 0 };
 
 
 //----- OPEN THE I2C BUS -----
@@ -29,33 +33,33 @@ int OpenI2C() {
     return 0;
 }
 
-int ReadI2C() {
-    float buff[6] = {0};  
-    int addr = 0x05;          //<<<<<The I2C address of the slave
+int ReadForceVector() {
+    // Open Bus to Arduino
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
             //ERROR HANDLING
             return -1;
     }
 
-
     // Read Force Vector
     length = sizeof(forceVec[0])*FORCE_SIZE;                        //<<< Number of bytes to read
-    if (read(fd_i2c, forceVec, length) != length)           //read() returns the number of bytes actually read, if it doesn't match then an error oc$
-    {
+    int actualRead = read(fd_i2c, forceVec, length);
+    if (actualRead != length) {          //read() returns the number of bytes actually read, if it doesn't match then an error oc$
             //ERROR HANDLING: i2c trcccansaction failed
             printf("Failed to read from the i2c bus.\n");
-    } else {
-            for(i=0;i<=length;i++) {
-            printf("Data read: %x\n", buff[i]);
-            }
-    }
+            return -1;
+    } 
 
+    // Show received Data
+    for(i=0; i <= length; i++) {
+        printf("Data read: %f\n", forceVec[i]);
+    }
+    
     return 0;
 }
 
 //----- WRITE BYTES -----
-int WriteI2C() {
+int WriteToArduino() {
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
             //ERROR HANDLING; you can check errno to see what went wrong
@@ -78,14 +82,30 @@ int WriteI2C() {
     return 0;
 }
 
+int StartCamRecording() {
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    printf("now: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+
+    // Take Video
+	// & ... run in background
+	// -y ... overwrite existing file
+	// -t ... duration of video
+    int status = system("ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 output.mjpg &"); 
+    return status;
+}
+
 
 
 int main() {
     printf("Hello, World! \r\n");
 
+#ifndef DEBUG
     switch (state) {
         case probeInit:    
             printf("--- State Init. \r\n");
+            OpenI2C();
             state = probeMoving;
             break;
         case probeMoving:   
@@ -102,18 +122,21 @@ int main() {
             break;
         case stop:          
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
+			ReadForceVector();
+            
             state = probeRecovery;
             break;
         case probeRecovery: 
             printf("--- State recovering Probe. \r\n");
+            WriteToArduino();
+            StartCamRecording();
             state = probeMoving;
             break;
         default:            break;
     }
+#endif
 
-    OpenI2C();
-    WriteI2C();
-    ReadI2C();
+
 
     printf("Goodbye \r\n");
     return 0;

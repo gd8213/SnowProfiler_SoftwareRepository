@@ -5,6 +5,7 @@
 #include <unistd.h>     // for read/write of I2C
 #include <stdlib.h>     // USB cam system call
 #include <time.h>       // Get date and time to save recording
+#include <string.h>     // Modify File name
 
 #define DEBUG
 #define FORCE_SIZE 4096
@@ -83,16 +84,27 @@ int WriteToArduino() {
 }
 
 int StartCamRecording() {
+    // Prepare Filename
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-    printf("now: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+    char fileName[] = "yyyy-mm-dd_hh-mm-ss.mjpg";
+    sprintf(fileName, "%d-%02d-%02d_%02d-%02d-%02d.mjpg", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 
+    // Prepare Command
+    // ffmpeg -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi
+    // ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 
+    char command[] = "ffmpeg -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
+    strcat(command,fileName);
+    strcat(command," &");
+    
     // Take Video
 	// & ... run in background
 	// -y ... overwrite existing file
 	// -t ... duration of video
-    int status = system("ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 output.mjpg &"); 
+    //int status = system("ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 output.mjpg &"); 
+    int status = system(command); 
     return status;
 }
 
@@ -100,6 +112,12 @@ int StartCamRecording() {
 
 int main() {
     printf("Hello, World! \r\n");
+
+    StartCamRecording();
+
+    
+
+    
 
 #ifndef DEBUG
     switch (state) {

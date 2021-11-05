@@ -93,7 +93,7 @@ int StartCamRecording() {
 
 
     // Prepare Command
-    // ffmpeg -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi
+    // ffmpeg -s 1600x1200 -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi 		// This one is the best; decrease resolution to get better fps
     // ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 
     char command[] = "ffmpeg -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
     strcat(command,fileName);

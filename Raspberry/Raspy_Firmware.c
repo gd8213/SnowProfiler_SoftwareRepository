@@ -6,10 +6,26 @@
 #include <stdlib.h>     // USB cam system call
 #include <time.h>       // Get date and time to save recording
 #include <string.h>     // Modify File name
+#include <wiringPi.h>   // GPIO -> see GPIO_Raspy.c for needed Setup
+#include <stdbool.h>    // use bool
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define DEBUG
+#define RASPY_4         // Remove on CM3 !!!!!!!!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
+
+#ifdef RASPY_4
+    #define PWM_CLOCK 54000000  // For Raspy 4
+#else
+    #define PWM_CLOCK 19200000  // For Raspy 3/3++
+#endif
+
+#define PWM_PIN_IR 26            // wiring pi pin -> PWM0
+#define PWM_PIN_MEAS 23         // wiring pi pin -> PWM1
+
 
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 enum ProbeState state = probeInit;
@@ -21,9 +37,20 @@ int i;
 float forceVec[FORCE_SIZE] = { 0 };
 float accelVec[FORCE_SIZE] = { 0 };
 
+// Function Prototypes
+int OpenI2C();
+int ReadForceVector();
+int WriteToArduino();
 
-//----- OPEN THE I2C BUS -----
+int StartCamRecording();
+
+int InitPWM();
+int SetDutyCyclePWM(int pin, int dutyCycle);
+
+
+
 int OpenI2C() {
+    // Open I2C Bus
     char *filename = (char*)"/dev/i2c-1";
     if ((fd_i2c = open(filename, O_RDWR)) < 0) {
             //ERROR HANDLING
@@ -59,8 +86,9 @@ int ReadForceVector() {
     return 0;
 }
 
-//----- WRITE BYTES -----
+
 int WriteToArduino() {
+    // Write Bytes to Arduino 
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
             //ERROR HANDLING; you can check errno to see what went wrong
@@ -93,9 +121,9 @@ int StartCamRecording() {
 
 
     // Prepare Command
-    // ffmpeg -s 1600x1200 -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi 		// This one is the best; decrease resolution to get better fps
+    // ffmpeg -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi 		// This one is the best; decrease resolution to get better fps
     // ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 
-    char command[] = "ffmpeg -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
+    char command[] = "ffmpeg -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
     strcat(command,fileName);
     strcat(command," &");
     
@@ -108,16 +136,53 @@ int StartCamRecording() {
     return status;
 }
 
+int InitPWM() {
+    // Initialize PWM for 2kHz measurement -> pwm carrier 1kHz
+    // Use system call because library has problems with root
+    system("gpio pwm-ms");
+
+    #ifdef RASPY_4
+        // Range=2000, Clock=27, f_pwm=1kHz
+        system("gpio pwmc 27"); 
+        system("gpio pwmr 2000");
+    #else
+        // Range=2000, Clock=9, f_pwm=1.0666kHz
+        system("gpio pwmc 9"); 
+        system("gpio pwmr 2000");
+    #endif
+
+    return 0;
+} 
+
+int SetDutyCyclePWM(int pin, int dutyCycle) {
+    // dutyCycle 0...100
+    // Set PWM on Raspy
+    // https://raspberrypi.stackexchange.com/questions/4906/control-hardware-pwm-frequency
+    if (dutyCycle > 100){
+        dutyCycle = 100;
+    } else if (dutyCycle < 0){
+        dutyCycle = 0;
+    } 
+
+    char command[] = "gpio pwm xx xxxx";
+    sprintf(command, "gpio pwm %2d %4d", pin, 2000*dutyCycle/100);
+    
+    return system(command);
+}
 
 
 int main() {
     printf("Hello, World! \r\n");
-
-    StartCamRecording();
-
     
-
+    // WiringPi Setup
+    int res = wiringPiSetup();
+    if (res < 0){ 
+        printf("ERROR: GPIO init failed.");
+    } 
     
+    res = InitPWM();
+    SetDutyCyclePWM(PWM_PIN_MEAS, 25);
+
 
 #ifndef DEBUG
     switch (state) {
@@ -156,7 +221,7 @@ int main() {
 
 
 
-    printf("Goodbye \r\n");
+    printf("It is geting dark... \r\n");
     return 0;
 }
 

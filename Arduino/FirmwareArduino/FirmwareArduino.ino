@@ -6,19 +6,23 @@
 // Force Measurement as analog signal: A0
 // Synchronization with IR-Signal: D3
 
+// ATTENTION only on Domes Laptop !!!!!!!!!!!!!!!!!!!!
+// ADC Speed increase from 1.2kHz to 2.38kHz
+// https://forum.arduino.cc/t/nano-iot-33-analogread-is-slower-than-expected/635209
+
+
 #include <Wire.h>               // I2C Communication with Raspberry
+
 
 // Constants
 #define FORCE_SIZE 4096
 #define I2C_ADDR 0x05         // Address in I2C bus
 float maxForceRange = 300.0f;   // in Newton -> ToDo Check with Sensor
 
-
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 
 
 // Pin Setup
-// https://docs.arduino.cc/static/a84e4a994129669058db835f17f8ca9d/ABX00032%20(with%20headers)-datasheet.pdf
 int analogForcePin = A0;   // A0 - Use whole name for analog pins
 int syncSignalPin = 3;   // D3 - Just use number for digital pins
 
@@ -52,14 +56,17 @@ void setup() {
   // Setup Force
   pinMode(analogForcePin, INPUT);
   analogReadResolution(10);   // Set Resolution of Force sensor to max 10 Bit
+  // ATTENTION only on Domes Laptop the ADC speed is increased (see above). Default 1.2kHz
 
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
  
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
-void loop() {
+void loop() {  
 
+
+/*
   // The state machine of the device
   switch (state) {
     case probeInit:    
@@ -90,6 +97,7 @@ void loop() {
     default:            break;
   }
 
+*/
 
 delay(250);
 }
@@ -127,10 +135,10 @@ float ReadForceSensor() {
 
 
 float GetForceFromMeasurement(int rawValue) {
-  // ToDo 
-  // Voltage from 0-5V will map to 0-1023 (10Bit resolution). ATTENTION connect only 3.3V
+  // Voltage from 0-3.3V will map to 0-1023 (10Bit resolution). ATTENTION connect only 3.3V
+  float maxVoltage = 3.3;
 
-  float voltage = (float) rawValue * 5 / 1023;
+  float voltage = (float) rawValue * maxVoltage / 1023;
   float force = maxForceRange * voltage / 3.3;
   return force;
 }
@@ -139,15 +147,15 @@ float GetForceFromMeasurement(int rawValue) {
 // --------------------------------------------------------------------------------
 // -----------------------------------I2C------------------------------------------
 // --------------------------------------------------------------------------------
+
 void SendToRaspyEvent() {
+  // Write Force vector to Raspy
   Serial.println("Write Force Vector to Raspy...");   // Debug
-
   Wire.write ( (byte *) &forceVector[0], sizeof(forceVector[0])*FORCE_SIZE);
-
-  //Wire.write(&forceVector[0], sizeof(forceVector)); 
 }
 
 void GetFromRaspyEvent(int howMany) {
+  // Not used at the moment -> Maybe for setting light of Endoscope
   while(Wire.available()) { // loop through all but the last
     int c = Wire.read(); // receive byte as a character
     Serial.print("Got something ");

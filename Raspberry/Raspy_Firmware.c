@@ -37,15 +37,24 @@ int i;
 float forceVec[FORCE_SIZE] = { 0 };
 float accelVec[FORCE_SIZE] = { 0 };
 
+struct tm tm;       // Time struct
+
 // Function Prototypes
 int OpenI2C();
 int ReadForceVector();
 int WriteToArduino();
 
+int DetectFreeFallIMU();
+int ReadAccelVector();
+
+int PrepareDataFileName();
 int StartCamRecording();
+int SaveDataToCSV();
 
 int InitPWM();
 int SetDutyCyclePWM(int pin, int dutyCycle);
+
+
 
 
 
@@ -86,6 +95,10 @@ int ReadForceVector() {
     return 0;
 }
 
+int ReadAccelVector() {
+    // ToDo Get Acceleration from IMU
+    return 0;
+}
 
 int WriteToArduino() {
     // Write Bytes to Arduino 
@@ -111,13 +124,18 @@ int WriteToArduino() {
     return 0;
 }
 
+int PrepareDataFileName() { 
+    time_t t = time(NULL);
+    tm = *localtime(&t);
+    //struct tm tm = *localtime(&t);
+
+    return 0;
+} 
+
 int StartCamRecording() {
     // Prepare Filename
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-
-    char fileName[] = "yyyy-mm-dd_hh-mm-ss.mjpg";
-    sprintf(fileName, "%d-%02d-%02d_%02d-%02d-%02d.mjpg", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.mjpg";
+    sprintf(fileName, "Data/%d-%02d-%02d_%02d-%02d-%02d.mjpg", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 
     // Prepare Command
@@ -139,12 +157,22 @@ int StartCamRecording() {
 int InitPWM() {
     // Initialize PWM for 2kHz measurement -> pwm carrier 1kHz
     // Use system call because library has problems with root
-    system("gpio pwm-ms");
 
+    // Set pin to PWM
+    char command[] = "gpio mode XX pwm";
+    sprintf(command, "gpio mode %2d pwm", PWM_PIN_MEAS);
+    system(command);
+    sprintf(command, "gpio mode %2d pwm", PWM_PIN_IR);
+    system(command);
+
+    // Pin mode to PWM
+    system("sudo gpio pwm-ms");
+
+    // Set PWM carrier frequency with resolution
     #ifdef RASPY_4
         // Range=2000, Clock=27, f_pwm=1kHz
-        system("gpio pwmc 27"); 
-        system("gpio pwmr 2000");
+        system("sudo gpio pwmc 27"); 
+        system("sudo gpio pwmr 2000");
     #else
         // Range=2000, Clock=9, f_pwm=1.0666kHz
         system("gpio pwmc 9"); 
@@ -164,11 +192,43 @@ int SetDutyCyclePWM(int pin, int dutyCycle) {
         dutyCycle = 0;
     } 
 
-    char command[] = "gpio pwm xx xxxx";
-    sprintf(command, "gpio pwm %2d %4d", pin, 2000*dutyCycle/100);
+    char command[] = "sudo gpio pwm xx xxxx";
+    sprintf(command, "sudo gpio pwm %2d %4d", pin, 2000/100*dutyCycle);
     
     return system(command);
 }
+
+
+int SaveDataToCSV() {
+    // Prepare File name
+    char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.csv";
+    sprintf(fileName, "Data/%d-%02d-%02d_%02d-%02d-%02d.csv", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+
+    // Write to CSV-file -> https://stackoverflow.com/questions/14916527/writing-to-a-csv-file-in-c/14916559
+    FILE *filePtr;
+    filePtr = fopen(fileName, "w");
+
+    if (filePtr == NULL){
+        // File was opened
+        return -1;
+    } 
+
+    fprintf(filePtr, "Acceleration [m/s2],Force [N]  \r\n");
+    for(i = 0; i < FORCE_SIZE; i++) { 
+        fprintf(filePtr, "%d,%d \r\n", accelVec[i], forceVec[i]);
+    } 
+
+    fclose(filePtr);
+    return 0;
+} 
+
+
+int DetectFreeFallIMU() {
+    // ToDo Get Acceleration State from IMU
+    // Return 1 on freefall, 0 on g, -1 else
+    return 0;
+} 
 
 
 int main() {
@@ -180,39 +240,80 @@ int main() {
         printf("ERROR: GPIO init failed.");
     } 
     
+    /*
     res = InitPWM();
-    SetDutyCyclePWM(PWM_PIN_MEAS, 25);
+    res = SetDutyCyclePWM(PWM_PIN_MEAS, 50);
+    
+    sleep(2);
+    res = SetDutyCyclePWM(PWM_PIN_MEAS, 0);
+    ReadForceVector();
 
+    PrepareDataFileName();
+    SaveDataToCSV();
+
+    */
 
 #ifndef DEBUG
     switch (state) {
         case probeInit:    
             printf("--- State Init. \r\n");
             OpenI2C();
+            InitPWM();
+            SetDutyCyclePWM(PWM_PIN_IR, 50);        // PWM for IR-LED
+            SetDutyCyclePWM(PWM_PIN_MEAS, 0);
             state = probeMoving;
             break;
+
         case probeMoving:   
             printf("--- State Probe Moving to Location. \r\n");
-            state = freeFall;
+            int freefall = DetectFreeFallIMU();
+            if (freefall > 0){
+                // Freefall detected
+                state = freeFall;
+            } else { 
+                state = probeMoving;
+            }             
             break;
+
         case freeFall:      
             printf("--- State Free Fall. \r\n");
+            SetDutyCyclePWM(PWM_PIN_MEAS, 50);        // PWM for Measurement
             state = deceleration;
             break;
+
         case deceleration:  
             printf("--- State Hit Surface. Deceleration of Probe. \r\n");
-            state = stop;
+            int freefall = DetectFreeFallIMU();
+            if (freefall == 0){
+                // Stop detected
+                state = stop;
+            } else { 
+                // Still moving
+                state = deceleration;
+            }   
             break;
+
         case stop:          
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
+            SetDutyCyclePWM(PWM_PIN_MEAS, 0);
+
 			ReadForceVector();
+            ReadAccelVector();
             
-            state = probeRecovery;
+            int freefall = DetectFreeFallIMU();
+            if (freefall == -1){
+                // Started moving upwards
+                state = probeRecovery;
+            } else { 
+                // Still stop
+                state = stop;
+            }  
             break;
+
         case probeRecovery: 
             printf("--- State recovering Probe. \r\n");
-            WriteToArduino();
             StartCamRecording();
+            SaveDataToCSV();
             state = probeMoving;
             break;
         default:            break;

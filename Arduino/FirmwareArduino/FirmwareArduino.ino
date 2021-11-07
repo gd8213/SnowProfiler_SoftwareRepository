@@ -23,8 +23,9 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 
 
 // Pin Setup
-int analogForcePin = A0;   // A0 - Use whole name for analog pins
-int syncSignalPin = 3;   // D3 - Just use number for digital pins
+int analogForcePin = A0;    // A0 - Use whole name for analog pins
+int syncSignalPin = 3;      // D3 - Just use number for digital pins
+int pwmInterruptPin = 10;   // D10 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
 
 
 // Global variables
@@ -39,6 +40,9 @@ float GetForceFromMeasurement( int rawValue);     // Convert Raw data
 
 void SendToRaspyEvent();                // I2C send to Raspy
 void GetFromRaspyEvent(int howMany);     // I2C get from Raspy
+
+void TogglePwmInterrupt(bool enable);
+void ISR_PwmInterrupt();
 
 
 // ----------------------------------------------------------------------
@@ -58,48 +62,19 @@ void setup() {
   analogReadResolution(10);   // Set Resolution of Force sensor to max 10 Bit
   // ATTENTION only on Domes Laptop the ADC speed is increased (see above). Default 1.2kHz
 
+  // Sync Pins
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
+  pinMode(pwmInterruptPin, INPUT_PULLDOWN);
+  TogglePwmInterrupt(true);                   // Enable PWM Interrupt
+
  
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
+
+
 void loop() {  
-
-
-/*
-  // The state machine of the device
-  switch (state) {
-    case probeInit:    
-      Serial.print("--- State Init. \r\n");
-      state = probeMoving;
-      break;
-    case probeMoving:   
-      Serial.print("--- State Probe Moving to Location. \r\n");
-      state = freeFall;
-      break;
-    case freeFall:      
-      Serial.print("--- State Free Fall. \r\n");
-      state = deceleration;
-      break;
-    case deceleration:  
-      Serial.print("--- State Hit Surface. Deceleration of Probe. \r\n");
-      ReadForceSensor();
-      state = stop;
-      break;
-    case stop:          
-      Serial.print("--- State Probe stoped moving. Prepare for Recovery. \r\n");
-      state = probeRecovery;
-      break;
-    case probeRecovery: 
-      Serial.print("--- State recovering Probe. \r\n");
-      state = probeMoving;
-      break;
-    default:            break;
-  }
-
-*/
-
-delay(250);
+  // nothing to do
 }
 
 
@@ -115,6 +90,7 @@ float ReadForceSensor() {
   // Store in Array
   forceVector[currentForceIndex] = analogValue;
 
+/*
   // Check if Sync Signal was set
   static PinStatus oldSync = LOW;
   PinStatus syncSignal = digitalRead(syncSignalPin);
@@ -122,6 +98,7 @@ float ReadForceSensor() {
     syncIndex = currentForceIndex;
   }
   oldSync = syncSignal;
+*/
 
   // Prepare Index for next measurement
   currentForceIndex++;                        
@@ -139,10 +116,23 @@ float GetForceFromMeasurement(int rawValue) {
   float maxVoltage = 3.3;
 
   float voltage = (float) rawValue * maxVoltage / 1023;
-  float force = maxForceRange * voltage / 3.3;
+  float force = maxForceRange * voltage / maxVoltage;
   return force;
 }
 
+void TogglePwmInterrupt(bool enable) {
+  // Enable or Disable PWM Interrupts
+  if (enable == true) {
+    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, CHANGE);
+  } else {
+     detachInterrupt(digitalPinToInterrupt(pwmInterruptPin));
+  }
+}
+
+void ISR_PwmInterrupt() {
+  Serial.println("-------- Interrupt was triggered --------");   // Debug
+  ReadForceSensor();
+}
 
 // --------------------------------------------------------------------------------
 // -----------------------------------I2C------------------------------------------
@@ -163,4 +153,7 @@ void GetFromRaspyEvent(int howMany) {
     Serial.print("\r\n");
   }
 }
+
+
+
 

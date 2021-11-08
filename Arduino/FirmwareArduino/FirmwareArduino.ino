@@ -34,6 +34,9 @@ ProbeState state = probeInit;
 int syncIndex = 0;                  // Stores the index of synchronization -> IR Sensor
 int currentForceIndex = 0;          // Stores the index where the measurement should be stored
 
+unsigned long prevMillis = 0;        // will store last time LED was updated
+unsigned long interMillis = 1000;
+
 // Function Prototypes
 float ReadForceSensor();                          // Get current Force
 float GetForceFromMeasurement( int rawValue);     // Convert Raw data
@@ -51,13 +54,16 @@ void ISR_PwmInterrupt();
 void setup() {
   // Communication Debug
   Serial.begin(9600);     // For Debugging -> use output window or h-term
+  Serial.print("---- Start Initialization \r\n");
 
   // Setup Communication Raspberry via I2C
+  Serial.print("Initialise I2C... \r\n");
   Wire.begin(I2C_ADDR);    // Join Bus
   Wire.onRequest(SendToRaspyEvent);     // register Send to Raspy event
   Wire.onReceive(GetFromRaspyEvent);     // register get from Raspy event
 
   // Setup Force
+  Serial.print("Initialise Pins... \r\n");
   pinMode(analogForcePin, INPUT);
   analogReadResolution(10);   // Set Resolution of Force sensor to max 10 Bit
   // ATTENTION only on Domes Laptop the ADC speed is increased (see above). Default 1.2kHz
@@ -67,14 +73,33 @@ void setup() {
   pinMode(pwmInterruptPin, INPUT_PULLDOWN);
   TogglePwmInterrupt(true);                   // Enable PWM Interrupt
 
- 
+  // Show running arduino
   pinMode(LED_BUILTIN, OUTPUT);
+  Serial.print("Initialization finished... \r\n");
+  Serial.print("---- Start Running mode \r\n");
 }
 
 
 
 void loop() {  
-  // nothing to do
+  // Just show a runnning Raspy
+  unsigned long currMillis = millis();
+  static int ledState = LOW;             // ledState used to set the LED
+
+  if (currMillis - prevMillis >= interMillis) {
+    // save the last time you blinked the LED
+    prevMillis = currMillis;
+
+    // if the LED is off turn it on and vice-versa:
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(LED_BUILTIN, ledState);
+  }  
 }
 
 
@@ -102,7 +127,7 @@ float ReadForceSensor() {
 
   // Prepare Index for next measurement
   currentForceIndex++;                        
-  if (currentForceIndex > FORCE_SIZE) {
+  if (currentForceIndex >= FORCE_SIZE) {
     // Overflow
     currentForceIndex = 0; 
   }
@@ -130,7 +155,6 @@ void TogglePwmInterrupt(bool enable) {
 }
 
 void ISR_PwmInterrupt() {
-  Serial.println("-------- Interrupt was triggered --------");   // Debug
   ReadForceSensor();
 }
 
@@ -139,9 +163,18 @@ void ISR_PwmInterrupt() {
 // --------------------------------------------------------------------------------
 
 void SendToRaspyEvent() {
-  // Write Force vector to Raspy
-  Serial.println("Write Force Vector to Raspy...");   // Debug
-  Wire.write ( (byte *) &forceVector[0], sizeof(forceVector[0])*FORCE_SIZE);
+  // Send just one entry to Raspy starting with the oldest
+  Serial.print("Send force index ");   // Debug
+  Serial.print(currentForceIndex);
+  Serial.print(" to Raspy... \r\n");
+
+  //Wire.write( (byte *) &forceVector[0], sizeof(forceVector[0])*FORCE_SIZE);
+  Wire.write( (byte *) &forceVector[currentForceIndex], sizeof(forceVector[currentForceIndex]));
+
+  currentForceIndex++;
+  if (currentForceIndex >= FORCE_SIZE) {
+    currentForceIndex = 0;
+  }
 }
 
 void GetFromRaspyEvent(int howMany) {

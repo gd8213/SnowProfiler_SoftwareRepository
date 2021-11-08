@@ -39,12 +39,13 @@ clear opts
 
 
 %% Plot
-figure
-plot(Data(:,1)/1000,Data(:,2), 'x-')
-grid on
+% figure
+% plot(Data(:,1)/1000,Data(:,2), 'x-')
+% grid on
 
 figure
 stairs(Data(:,1)/1000,Data(:,2))
+xlabel("time in ms")
 grid on
 
 %% 

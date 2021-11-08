@@ -32,6 +32,7 @@ void loop() {
 
 void ISR_PWM() {
   static int counter = 0;
+  static int delayCounter = 0;
 
   timing[counter] = micros();
   if (digitalRead(pwmInterruptPin) == LOW) {
@@ -40,25 +41,25 @@ void ISR_PWM() {
     state[counter] = 1;
   }
   counter++;
+  delayCounter++;
   
-  /*
-  if (counter >= TIME_SIZE) {
-      counter = 0;
+  if (delayCounter >= 100) {
+    if (counter >= TIME_SIZE) {
+        counter = 0;
+        delayCounter = 0;
 
-      for (int i = 0; i < TIME_SIZE; i++){
-        Serial.print(timing[i]-timing[0]);
-        Serial.print(", ");
+        for (int i = 0; i < TIME_SIZE; i++){
+          Serial.print(timing[i]-timing[0]);
+          Serial.print(", ");
+        }
+        Serial.println();
+        for (int i = 0; i < TIME_SIZE; i++){
+          Serial.print(state[i]);
+          Serial.print(", ");
+        }
+        Serial.println();
       }
-      Serial.println();
-      for (int i = 0; i < TIME_SIZE; i++){
-        Serial.print(state[i]);
-        Serial.print(", ");
-      }
-      Serial.println();
-    }
-  */
-
-  
+  }
 
   digitalWrite(LED_BUILTIN, digitalRead(pwmInterruptPin));
 }

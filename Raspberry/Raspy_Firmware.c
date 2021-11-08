@@ -32,15 +32,15 @@ enum ProbeState state = probeInit;
 
 int fd_i2c = -1;
 
-float forceVec[FORCE_SIZE] = { 0 };
-float accelVec[FORCE_SIZE] = { 0 };
-float timeVec[FORCE_SIZE] = { 0 };
+float forceVec[FORCE_SIZE] = { -1 };
+float accelVec[FORCE_SIZE] = { -1 };
+float timeVec[FORCE_SIZE] = { -1 };
 
 struct tm tm;       // Time struct
 
 // Function Prototypes
 int OpenI2C();
-int ReadForceVector();
+int ReadForceVecFromArduino();
 int WriteToArduino();
 
 int DetectFreeFallIMU();
@@ -58,50 +58,65 @@ int SetDutyCyclePWM(int pin, int dutyCycle);
 
 
 int OpenI2C() {
+    printf("Open I2C bus to arduino... \r\n");
     // Open I2C Bus
     char *filename = (char*)"/dev/i2c-1";
     if ((fd_i2c = open(filename, O_RDWR)) < 0) {
             //ERROR HANDLING
-            printf("Failed to open the i2c bus");
+            printf("ERROR: Failed to open the i2c bus \r\n");
             return -1;
     }
 
     return 0;
 }
 
-int ReadForceVector() {
+int ReadForceVecFromArduino() {
+    float tempVec[FORCE_SIZE] = { -1 };
+    int valuesPerPacket = 32;
+
+    int shouldLength = sizeof(tempVec[0])*FORCE_SIZE;                        //<<< Number of bytes to read
+    int readLength = 0;
+    int startIndex = -1;        // Last Valid index from arduino -> Sort vector
+    int actualRead = -1;
+
     // Open Bus to Arduino
+    printf("Read force data from Arduion... \r\n");
+
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
             //ERROR HANDLING
             return -1;
     }
 
-    // Read Force Vector
-    int shouldLength = sizeof(forceVec[0])*FORCE_SIZE;                        //<<< Number of bytes to read
-    int readLength = 0;
-    for(int i = 0; i < FORCE_SIZE; i++) {
-        int actualRead = read(fd_i2c, &forceVec[i], sizeof(forceVec[i]));
-        usleep(500);        // Wait some time for communication
-        readLength = readLength + actualRead;
-    } 
 
-    printf("Received Byte from Arduino %d/%d \r\n", readLength, shouldLength);
-    if (shouldLength != readLength) {
+
+    // Actual I2C Communication
+    actualRead = read(fd_i2c, &startIndex, sizeof(startIndex));
+
+    for (int i = 0; i < FORCE_SIZE/valuesPerPacket; i++){
+        actualRead = read(fd_i2c, &tempVec[i*valuesPerPacket], sizeof(tempVec[0])*valuesPerPacket);
+        readLength = readLength + actualRead;
+        usleep(1000);
+    }
+    
+    
+    printf("Received Data from Arduino %d/%d.\r\n", readLength, shouldLength);
+    if(shouldLength != readLength){
+        printf("ERROR: Not all data received. \r\n");
         return -1;
     } 
 
-    return 0;
+    // Sort Vector
+    for (int i = 0; i < FORCE_SIZE; i++){
+        if(startIndex >= FORCE_SIZE){
+            startIndex = 0;
+        } 
 
-    /*
-    length = sizeof(forceVec[0])*FORCE_SIZE;                        //<<< Number of bytes to read
-    int actualRead = read(fd_i2c, forceVec, length);
-    if (actualRead != length) {          //read() returns the number of bytes actually read, if it doesn't match then an error oc$
-            //ERROR HANDLING: i2c trcccansaction failed
-            printf("Failed to read from the i2c bus.\n");
-            return -1;
+        forceVec[i] = tempVec[startIndex];
+        startIndex++;  
     } 
-    */
+
+    return 0;
 }
 
 int ReadAccelVector() {
@@ -272,7 +287,7 @@ int main() {
     
     sleep(2);
     res = SetDutyCyclePWM(PWM_PIN_MEAS, 0);
-    ReadForceVector();
+    ReadForceVecFromArduino();
 
     PrepareDataFileName();
     SaveDataToCSV();
@@ -323,7 +338,7 @@ int main() {
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
             SetDutyCyclePWM(PWM_PIN_MEAS, 0);
 
-			ReadForceVector();
+			ReadForceVecFromArduino();
             ReadAccelVector();
             
             int freefall = DetectFreeFallIMU();

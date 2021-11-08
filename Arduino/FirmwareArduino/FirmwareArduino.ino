@@ -163,18 +163,33 @@ void ISR_PwmInterrupt() {
 // --------------------------------------------------------------------------------
 
 void SendToRaspyEvent() {
-  // Send just one entry to Raspy starting with the oldest
-  Serial.print("Send force index ");   // Debug
-  Serial.print(currentForceIndex);
-  Serial.print(" to Raspy... \r\n");
+  // Send 32 values each time what is equal to 128 Bytes
+  static int packetIndex = -1;
+  int valuesPerPacket = 32;
 
-  //Wire.write( (byte *) &forceVector[0], sizeof(forceVector[0])*FORCE_SIZE);
-  Wire.write( (byte *) &forceVector[currentForceIndex], sizeof(forceVector[currentForceIndex]));
+  if (packetIndex < 0) {
+    Serial.print("Send force vector beginning: ");   // Debug
+    Serial.print(currentForceIndex);
+    Serial.print(" to Raspy... \r\n");
 
-  currentForceIndex++;
-  if (currentForceIndex >= FORCE_SIZE) {
-    currentForceIndex = 0;
+    Wire.write((byte *) &currentForceIndex, sizeof(currentForceIndex));
+  } else {
+    Serial.print("Send force vector packet ");   // Debug
+    Serial.print(packetIndex+1);
+    Serial.print("/");
+    Serial.print(FORCE_SIZE/valuesPerPacket);
+    Serial.print(" to Raspy... \r\n");
+    Wire.write( (byte *) &forceVector[packetIndex*valuesPerPacket], sizeof(forceVector[0])*valuesPerPacket);
   }
+
+
+  packetIndex++;
+  if (packetIndex >= FORCE_SIZE/valuesPerPacket) {
+    Serial.print("Finished Transmission to Raspy. \r\n");  
+    packetIndex = -1;
+  }
+
+  return;
 }
 
 void GetFromRaspyEvent(int howMany) {

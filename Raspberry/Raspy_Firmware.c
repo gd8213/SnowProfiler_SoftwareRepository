@@ -31,11 +31,10 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 enum ProbeState state = probeInit;
 
 int fd_i2c = -1;
-int length;
-int i;
 
 float forceVec[FORCE_SIZE] = { 0 };
 float accelVec[FORCE_SIZE] = { 0 };
+float timeVec[FORCE_SIZE] = { 0 };
 
 struct tm tm;       // Time struct
 
@@ -79,6 +78,22 @@ int ReadForceVector() {
     }
 
     // Read Force Vector
+    int shouldLength = sizeof(forceVec[0])*FORCE_SIZE;                        //<<< Number of bytes to read
+    int readLength = 0;
+    for(int i = 0; i < FORCE_SIZE; i++) {
+        int actualRead = read(fd_i2c, &forceVec[i], sizeof(forceVec[i]));
+        usleep(500);        // Wait some time for communication
+        readLength = readLength + actualRead;
+    } 
+
+    printf("Received Byte from Arduino %d/%d \r\n", readLength, shouldLength);
+    if (shouldLength != readLength) {
+        return -1;
+    } 
+
+    return 0;
+
+    /*
     length = sizeof(forceVec[0])*FORCE_SIZE;                        //<<< Number of bytes to read
     int actualRead = read(fd_i2c, forceVec, length);
     if (actualRead != length) {          //read() returns the number of bytes actually read, if it doesn't match then an error oc$
@@ -86,13 +101,7 @@ int ReadForceVector() {
             printf("Failed to read from the i2c bus.\n");
             return -1;
     } 
-
-    // Show received Data
-    for(i=0; i <= length; i++) {
-        printf("Data read: %f\n", forceVec[i]);
-    }
-    
-    return 0;
+    */
 }
 
 int ReadAccelVector() {
@@ -111,7 +120,7 @@ int WriteToArduino() {
     unsigned char buffer[6] = {0};
     buffer[0] = 0x00;
     buffer[1] = 0x01;
-    length = 1;                     //<<< Number of bytes to write
+    int length = 1;                     //<<< Number of bytes to write
 
     int actual = write(fd_i2c, buffer, length);
     if (actual != length)
@@ -133,6 +142,8 @@ int PrepareDataFileName() {
 } 
 
 int StartCamRecording() {
+    printf("Start Video Recording...");
+
     // Prepare Filename
     char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.mjpg";
     sprintf(fileName, "Data/%d-%02d-%02d_%02d-%02d-%02d.mjpg", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
@@ -157,6 +168,7 @@ int StartCamRecording() {
 int InitPWM() {
     // Initialize PWM for 2kHz measurement -> pwm carrier 1kHz
     // Use system call because library has problems with root
+    printf("Initialize PWM... \r\n");
 
     // Set pin to PWM
     char command[] = "gpio mode XX pwm";
@@ -173,16 +185,22 @@ int InitPWM() {
         // Range=2000, Clock=27, f_pwm=1kHz
         system("sudo gpio pwmc 27"); 
         system("sudo gpio pwmr 2000");
+        for (int i = 0; i < FORCE_SIZE; i++) {
+            timeVec[i] = (float) 1/(1000*2)*i; 
+        } 
     #else
         // Range=2000, Clock=9, f_pwm=1.0666kHz
         system("gpio pwmc 9"); 
         system("gpio pwmr 2000");
+        for (int i = 0; i < FORCE_SIZE; i++) {
+            timeVec[i] = (float) 1/(1066.666*2)*i;
+        } 
     #endif
 
     return 0;
 } 
 
-int SetDutyCyclePWM(int pin, int dutyCycle) {
+int SetDutyCyclePWM(int pin, int dutyCycle){  
     // dutyCycle 0...100
     // Set PWM on Raspy
     // https://raspberrypi.stackexchange.com/questions/4906/control-hardware-pwm-frequency
@@ -192,6 +210,8 @@ int SetDutyCyclePWM(int pin, int dutyCycle) {
         dutyCycle = 0;
     } 
 
+    printf("Set Duty Cycle for pin %d to %d percent. \r\n", pin, dutyCycle);
+
     char command[] = "sudo gpio pwm xx xxxx";
     sprintf(command, "sudo gpio pwm %2d %4d", pin, 2000/100*dutyCycle);
     
@@ -200,6 +220,9 @@ int SetDutyCyclePWM(int pin, int dutyCycle) {
 
 
 int SaveDataToCSV() {
+
+   printf("Save data to file... \r\n");
+
     // Prepare File name
     char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.csv";
     sprintf(fileName, "Data/%d-%02d-%02d_%02d-%02d-%02d.csv", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
@@ -209,14 +232,15 @@ int SaveDataToCSV() {
     FILE *filePtr;
     filePtr = fopen(fileName, "w");
 
-    if (filePtr == NULL){
-        // File was opened
+    if (filePtr == NULL){ 
+        // File was not opened
+        printf("ERROR: Failed to open file. \r\n");
         return -1;
     } 
 
-    fprintf(filePtr, "Acceleration [m/s2],Force [N]  \r\n");
-    for(i = 0; i < FORCE_SIZE; i++) { 
-        fprintf(filePtr, "%d,%d \r\n", accelVec[i], forceVec[i]);
+    fprintf(filePtr, "Time[s],Acceleration [m/s2],Force [N]  \r\n");
+    for(int i = 0; i < FORCE_SIZE; i++) { 
+        fprintf(filePtr, "%.4f,%.3f,%.3f \r\n", timeVec[i], accelVec[i], forceVec[i]);
     } 
 
     fclose(filePtr);
@@ -240,7 +264,9 @@ int main() {
         printf("ERROR: GPIO init failed.");
     } 
     
-    /*
+
+    // Testing the Workflow with Arduino
+    OpenI2C();
     res = InitPWM();
     res = SetDutyCyclePWM(PWM_PIN_MEAS, 50);
     
@@ -251,7 +277,7 @@ int main() {
     PrepareDataFileName();
     SaveDataToCSV();
 
-    */
+    
 
 #ifndef DEBUG
     switch (state) {

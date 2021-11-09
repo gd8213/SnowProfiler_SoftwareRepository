@@ -70,6 +70,7 @@ int OpenI2C() {
     return 0;
 }
 
+
 int ReadForceVecFromArduino() {
     float tempVec[FORCE_SIZE] = { -1 };
     int valuesPerPacket = 32;
@@ -125,6 +126,7 @@ int ReadAccelVector() {
 }
 
 int WriteToArduino() {
+    printf("Write data to Arduino \r\n");
     // Write Bytes to Arduino 
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
@@ -149,6 +151,7 @@ int WriteToArduino() {
 }
 
 int PrepareDataFileName() { 
+    printf("Prepare File name with current time...\r\n");
     time_t t = time(NULL);
     tm = *localtime(&t);
     //struct tm tm = *localtime(&t);
@@ -271,7 +274,7 @@ int DetectFreeFallIMU() {
 
 
 int main() {
-    printf("Hello, World! \r\n");
+    printf("Raspy Firmware is starting... \r\n");
     
     // WiringPi Setup
     int res = wiringPiSetup();
@@ -296,7 +299,8 @@ int main() {
 
 #ifndef DEBUG
     switch (state) {
-        case probeInit:    
+        case probeInit:  
+            printf("Raspy Firmware is starting up... \r\n");  
             printf("--- State Init. \r\n");
             OpenI2C();
             InitPWM();

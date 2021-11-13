@@ -26,7 +26,7 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 int analogForcePin = A0;    // A0 - Use whole name for analog pins
 int syncSignalPin = 3;      // D3 - Just use number for digital pins
 int pwmInterruptPin = 10;   // D10 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
-
+int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables
 float forceVector[FORCE_SIZE];
@@ -42,7 +42,7 @@ float ReadForceSensor();                          // Get current Force
 float GetForceFromMeasurement( int rawValue);     // Convert Raw data
 
 void SendToRaspyEvent();                // I2C send to Raspy
-void GetFromRaspyEvent(int howMany);     // I2C get from Raspy
+void GetLightFromRaspy(int howMany);     // I2C get from Raspy
 
 void TogglePwmInterrupt(bool enable);
 void ISR_PwmInterrupt();
@@ -60,7 +60,7 @@ void setup() {
   Serial.print("Initialise I2C... \r\n");
   Wire.begin(I2C_ADDR);    // Join Bus
   Wire.onRequest(SendToRaspyEvent);     // register Send to Raspy event
-  Wire.onReceive(GetFromRaspyEvent);     // register get from Raspy event
+  Wire.onReceive(GetLightFromRaspy);     // register get from Raspy event
 
   // Setup Force
   Serial.print("Initialise Pins... \r\n");
@@ -72,6 +72,10 @@ void setup() {
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
   pinMode(pwmInterruptPin, INPUT_PULLDOWN);
   TogglePwmInterrupt(true);                   // Enable PWM Interrupt
+
+  // Camera light
+  pinMode(analogCamLightPin, OUTPUT);
+  analogWrite(analogCamLightPin, 0);
 
   // Show running arduino
   pinMode(LED_BUILTIN, OUTPUT);
@@ -192,14 +196,16 @@ void SendToRaspyEvent() {
   return;
 }
 
-void GetFromRaspyEvent(int howMany) {
+void GetLightFromRaspy(int howMany) {
   // Not used at the moment -> Maybe for setting light of Endoscope
-  while(Wire.available()) { // loop through all but the last
-    int c = Wire.read(); // receive byte as a character
-    Serial.print("Got something ");
-    Serial.print(c);
-    Serial.print("\r\n");
-  }
+  //while (Wire.available()) { // loop through all but the last
+    unsigned int value = Wire.read(); // receive byte as a character
+    Serial.print("Set Camera light to ");
+    Serial.print(value);
+    Serial.print("/255 \r\n");
+
+    analogWrite(analogCamLightPin, value);
+ // }
 }
 
 

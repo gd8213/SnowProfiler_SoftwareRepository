@@ -272,22 +272,37 @@ int DetectFreeFallIMU() {
 int main() {
     printf("Raspy Firmware is starting... \r\n");
     
+
+#ifdef DEBUG
     // WiringPi Setup
-    int res = wiringPiSetup();
-    if (res < 0){ 
-        printf("ERROR: GPIO init failed.");
-    } 
-    
+    wiringPiSetup();
 
     // Testing the Workflow with Arduino
     OpenI2C();
-    
-    SetCamLightOnArduino(255);
-    SetCamLightOnArduino(255/2);    
-    SetCamLightOnArduino(255/4); 
-    SetCamLightOnArduino(0);
 
+    InitPWM();
+    SetDutyCyclePWM(PWM_PIN_MEAS, 0);
+    SetCamLightOnArduino(0);
+    printf("Raspy Initialization is done \r\n ");
+
+    printf("Start PWM \r\n");
+    PrepareDataFileName();
+    SetDutyCyclePWM(PWM_PIN_MEAS, 50);
+    sleep(3);
     
+    printf("Measurement Done \r\n");
+    SetDutyCyclePWM(PWM_PIN_MEAS, 0);
+    ReadForceVecFromArduino();
+    SaveDataToCSV();
+
+    printf("Start Cam Recording \r\n");
+    SetCamLightOnArduino(0);
+    StartCamRecording();
+
+    sleep(6);
+    printf("Finished cam Recording \r\n");     
+#endif
+
 
 #ifndef DEBUG
     switch (state) {
@@ -318,6 +333,7 @@ int main() {
 
         case freeFall:      
             printf("--- State Free Fall. \r\n");
+            PrepareDataFileName();
             SetDutyCyclePWM(PWM_PIN_MEAS, 50);        // PWM for Measurement
             state = deceleration;
             break;

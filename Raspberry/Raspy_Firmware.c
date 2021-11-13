@@ -41,7 +41,7 @@ struct tm tm;       // Time struct
 // Function Prototypes
 int OpenI2C();
 int ReadForceVecFromArduino();
-int WriteToArduino();
+int SetCamLightOnArduino();
 
 int DetectFreeFallIMU();
 int ReadAccelVector();
@@ -125,8 +125,9 @@ int ReadAccelVector() {
     return 0;
 }
 
-int WriteToArduino() {
-    printf("Write data to Arduino \r\n");
+int SetCamLightOnArduino(unsigned int value) {
+    // Set light with value = 0...255
+    printf("Set light to %d... \r\n", value);
     // Write Bytes to Arduino 
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
@@ -134,17 +135,12 @@ int WriteToArduino() {
             return -1;
     }
 
-    unsigned char buffer[6] = {0};
-    buffer[0] = 0x00;
-    buffer[1] = 0x01;
-    int length = 1;                     //<<< Number of bytes to write
-
-    int actual = write(fd_i2c, buffer, length);
-    if (actual != length)
+    
+    int actual = write(fd_i2c, &value, sizeof(value));
+    if (actual != sizeof(value)) {
 //write() returns the number of bytes actually written, if it doesn't match then an erro$
-    {
             // ERROR HANDLING: i2c transaction failed
-            printf("Failed to write to the i2c bus.\n");
+            printf("ERROR: Failed to Set endoscope light.\r\n");
     }
 
     return 0;
@@ -285,15 +281,11 @@ int main() {
 
     // Testing the Workflow with Arduino
     OpenI2C();
-    res = InitPWM();
-    res = SetDutyCyclePWM(PWM_PIN_MEAS, 50);
     
-    sleep(2);
-    res = SetDutyCyclePWM(PWM_PIN_MEAS, 0);
-    ReadForceVecFromArduino();
-
-    PrepareDataFileName();
-    SaveDataToCSV();
+    SetCamLightOnArduino(255);
+    SetCamLightOnArduino(255/2);    
+    SetCamLightOnArduino(255/4); 
+    SetCamLightOnArduino(0);
 
     
 
@@ -302,6 +294,10 @@ int main() {
         case probeInit:  
             printf("Raspy Firmware is starting up... \r\n");  
             printf("--- State Init. \r\n");
+            int res = wiringPiSetup();
+            if (res < 0){ 
+                printf("ERROR: GPIO init failed.");
+            } 
             OpenI2C();
             InitPWM();
             SetDutyCyclePWM(PWM_PIN_IR, 50);        // PWM for IR-LED
@@ -367,7 +363,7 @@ int main() {
 
 
 
-    printf("It is geting dark... \r\n");
+    printf("It is getting dark... \r\n");
     return 0;
 }
 

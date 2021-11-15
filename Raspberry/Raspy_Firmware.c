@@ -72,6 +72,7 @@ float accelVec[FORCE_SIZE] = { -1 };
 float timeVec[FORCE_SIZE] = { -1 };
 
 struct tm tm;       // Time struct
+unsigned int pwmRange = 0;
 
 // Function Prototypes
 int OpenI2C();
@@ -216,8 +217,9 @@ int StartCamRecording() {
 }
 
 int InitPWM() {
-    // Initialize PWM for 2kHz measurement -> pwm carrier 1kHz
+    // Initialize PWM for 2kHz measurement -> pwm carrier 2kHz
     // Use system call because library has problems with root
+    // https://raspberrypi.stackexchange.com/questions/4906/control-hardware-pwm-frequency
     printf("Initialize PWM... \r\n");
 
     // Set pin to PWM
@@ -232,20 +234,25 @@ int InitPWM() {
 
     // Set PWM carrier frequency with resolution
     #ifdef RASPY_4
+        // f_pwm = 54000000 / Clock / Range
         // Range=2000, Clock=27, f_pwm=1kHz
-        system("sudo gpio pwmc 27"); 
-        system("sudo gpio pwmr 2000");
-        for (int i = 0; i < FORCE_SIZE; i++) {
-            timeVec[i] = (float) 1/(1000*2)*i; 
-        } 
+        // Range=3000, Clock=9, f_pwm=2kHz
+        pwmRange = 3000;
+        system("sudo gpio pwmc 9");        // Clock
+        system("sudo gpio pwmr 3000");      // Range
     #else
-        // Range=2000, Clock=9, f_pwm=1.0666kHz
-        system("gpio pwmc 9"); 
-        system("gpio pwmr 2000");
-        for (int i = 0; i < FORCE_SIZE; i++) {
-            timeVec[i] = (float) 1/(1066.666*2)*i;
-        } 
+        // f_pwm = 19200000 / Clock / Range
+        // Range=1920, Clock=10, f_pwm=1kHz
+        // Range=1920, Clock=5, f_pwm=2kHz
+        pwmRange = 1920;
+        system("gpio pwmc 5"); 
+        system("gpio pwmr 1920");
     #endif
+
+    // Prepare Time vector with theoretical values
+    for (int i = 0; i < FORCE_SIZE; i++) {
+        timeVec[i] = (float) 1.0/2000.0*i; 
+    } 
 
     return 0;
 } 
@@ -263,7 +270,7 @@ int SetDutyCyclePWM(int pin, int dutyCycle){
     printf("Set Duty Cycle for pin %d to %d percent. \r\n", pin, dutyCycle);
 
     char command[] = "sudo gpio pwm xx xxxx";
-    sprintf(command, "sudo gpio pwm %2d %4d", pin, 2000/100*dutyCycle);
+    sprintf(command, "sudo gpio pwm %2d %4d", pin, pwmRange/100*dutyCycle);
     
     return system(command);
 }
@@ -360,7 +367,6 @@ int main() {
 
     InitArduinoIMU();
     float res = ReadAccelFromArduino();
-
 
 // -----------------------------------------------------------------------------------------
 /* Complete Flow

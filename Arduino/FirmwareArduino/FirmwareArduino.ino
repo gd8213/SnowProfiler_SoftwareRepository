@@ -152,7 +152,7 @@ float GetForceFromMeasurement(int rawValue) {
 void TogglePwmInterrupt(bool enable) {
   // Enable or Disable PWM Interrupts
   if (enable == true) {
-    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, RISING);
   } else {
      detachInterrupt(digitalPinToInterrupt(pwmInterruptPin));
   }

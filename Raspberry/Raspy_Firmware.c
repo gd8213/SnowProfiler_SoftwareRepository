@@ -2,12 +2,16 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
-#include <unistd.h>     // for read/write of I2C
-#include <stdlib.h>     // USB cam system call
-#include <time.h>       // Get date and time to save recording
-#include <string.h>     // Modify File name
-#include <wiringPi.h>   // GPIO -> see GPIO_Raspy.c for needed Setup
-#include <stdbool.h>    // use bool
+#include <unistd.h>         // for read/write of I2C
+#include <stdlib.h>         // USB cam system call
+#include <math.h>           // Sqrt
+
+#include <wiringPi.h>       // GPIO -> see GPIO_Raspy.c for needed Setup
+#include <wiringPiI2C.h>    // I2C functions to read Registers -> Arduino IMU
+
+#include <time.h>           // Get date and time to save recording
+#include <stdbool.h>        // use bool
+#include <string.h>         // Modify File name
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define DEBUG
@@ -23,14 +27,45 @@
     #define PWM_CLOCK 19200000  // For Raspy 3/3++
 #endif
 
+// Pins 
 #define PWM_PIN_IR 26            // wiring pi pin -> PWM0
 #define PWM_PIN_MEAS 23         // wiring pi pin -> PWM1
+
+
+// Arduino IMU
+#define ARDUINO_IMU_ADDR 0x6A
+
+#define ARDUINO_IMU_WHO_AM_I_REG       0X0F
+#define ARDUINO_IMU_CTRL1_XL           0X10
+#define ARDUINO_IMU_CTRL2_G            0X11
+
+#define ARDUINO_IMU_STATUS_REG         0X1E
+
+#define ARDUINO_IMU_CTRL6_C            0X15
+#define ARDUINO_IMU_CTRL7_G            0X16
+#define ARDUINO_IMU_CTRL8_XL           0X17
+
+#define ARDUINO_IMU_OUTX_L_G           0X22
+#define ARDUINO_IMU_OUTX_H_G           0X23
+#define ARDUINO_IMU_OUTY_L_G           0X24
+#define ARDUINO_IMU_OUTY_H_G           0X25
+#define ARDUINO_IMU_OUTZ_L_G           0X26
+#define ARDUINO_IMU_OUTZ_H_G           0X27
+
+#define ARDUINO_IMU_OUTX_L_XL          0X28
+#define ARDUINO_IMU_OUTX_H_XL          0X29
+#define ARDUINO_IMU_OUTY_L_XL          0X2A
+#define ARDUINO_IMU_OUTY_H_XL          0X2B
+#define ARDUINO_IMU_OUTZ_L_XL          0X2C
+#define ARDUINO_IMU_OUTZ_H_XL          0X2D
+
 
 
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 enum ProbeState state = probeInit;
 
 int fd_i2c = -1;
+int fd_arduinoIMU = -1;
 
 float forceVec[FORCE_SIZE] = { -1 };
 float accelVec[FORCE_SIZE] = { -1 };
@@ -43,7 +78,8 @@ int OpenI2C();
 int ReadForceVecFromArduino();
 int SetCamLightOnArduino();
 
-int DetectFreeFallIMU();
+int InitArduinoIMU();
+float ReadAccelFromArduino();     // Return g
 int ReadAccelVector();
 
 int PrepareDataFileName();
@@ -261,11 +297,53 @@ int SaveDataToCSV() {
     return 0;
 } 
 
+int InitArduinoIMU(){
+    printf("Init of Arduino's IMU... \r\n");
+    // Generate file descriptor
+    fd_arduinoIMU = wiringPiI2CSetup(ARDUINO_IMU_ADDR);
 
-int DetectFreeFallIMU() {
-    // ToDo Get Acceleration State from IMU
-    // Return 1 on freefall, 0 on g, -1 else
-    return 0;
+    // Set the Accelerometer control register to work at 104 Hz, 4G,and in bypass mode and enable ODR/4
+    // low pass filter(check figure9 of LSM6DS3's datasheet)
+    int res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL1_XL, 0x4A);
+    if (res != 0)    printf("ERROR: Failed to set accelerometer on Arduino's IMU... \r\n");
+
+    // Set the ODR config register to ODR/4
+    res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL8_XL, 0x09);
+    if (res != 0)    printf("ERROR: Failed to set ODR config on Arduino's IMU... \r\n");
+
+/*  // Gyro Settings not needed
+    //set the gyroscope control register to work at 104 Hz, 2000 dps and in bypass mode
+    res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL2_G, 0x4C);
+    if (res != 0)    printf("ERROR: Failed to set gyroscope on Arduino's IMU... \r\n");
+
+    // set gyroscope power mode to high performance and bandwidth to 16 MHz
+    res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL7_G, 0x00);
+    if (res != 0)    printf("ERROR: Failed to set gyro power mode on Arduino's IMU... \r\n");
+
+*/
+    return res;
+} 
+
+
+float ReadAccelFromArduino() {
+    // Return accel in g
+    printf("Read Arduino's IMU... \r\n");
+
+    float accel[3];        // Acceleration in g
+
+    int16_t data[3];
+    float x,y,z;
+    for (int i = 0; i < 3; i++) {
+        data[0] = wiringPiI2CReadReg16(fd_arduinoIMU, ARDUINO_IMU_OUTX_L_XL);
+        data[1] = wiringPiI2CReadReg16(fd_arduinoIMU, ARDUINO_IMU_OUTY_L_XL);
+        data[2] = wiringPiI2CReadReg16(fd_arduinoIMU, ARDUINO_IMU_OUTZ_L_XL);
+
+        x = data[0] * 4.0 / 32768.0;
+        y = data[1] * 4.0 / 32768.0;
+        z = data[2] * 4.0 / 32768.0;
+        accel[i]  = sqrt(x*x + y*y + z*z);
+    } 
+    return (accel[0] + accel[1] + accel[2] )/3;
 } 
 
 
@@ -279,6 +357,13 @@ int main() {
 
     // Testing the Workflow with Arduino
     OpenI2C();
+
+    InitArduinoIMU();
+    float res = ReadAccelFromArduino();
+
+
+// -----------------------------------------------------------------------------------------
+/* Complete Flow
 
     InitPWM();
     SetDutyCyclePWM(PWM_PIN_MEAS, 0);
@@ -300,7 +385,10 @@ int main() {
     StartCamRecording();
 
     sleep(6);
-    printf("Finished cam Recording \r\n");     
+    printf("Finished cam Recording \r\n");   
+
+*/  
+// -----------------------------------------------------------------------------------------
 #endif
 
 
@@ -322,8 +410,8 @@ int main() {
 
         case probeMoving:   
             printf("--- State Probe Moving to Location. \r\n");
-            int freefall = DetectFreeFallIMU();
-            if (freefall > 0){
+            float accel = ReadAccelFromArduino();
+            if (accel >= 0 && accel <= 0.2){
                 // Freefall detected
                 state = freeFall;
             } else { 
@@ -340,8 +428,8 @@ int main() {
 
         case deceleration:  
             printf("--- State Hit Surface. Deceleration of Probe. \r\n");
-            int freefall = DetectFreeFallIMU();
-            if (freefall == 0){
+            float accel = ReadAccelFromArduino();
+            if (accel >= 0.95 && accel <= 1.05){
                 // Stop detected
                 state = stop;
             } else { 
@@ -357,8 +445,8 @@ int main() {
 			ReadForceVecFromArduino();
             ReadAccelVector();
             
-            int freefall = DetectFreeFallIMU();
-            if (freefall == -1){
+            float accel = ReadAccelFromArduino();
+            if (accel <= 0.95|| accel >= 1.05){
                 // Started moving upwards
                 state = probeRecovery;
             } else { 

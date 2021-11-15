@@ -44,7 +44,7 @@ clear opts
 % grid on
 
 figure
-stairs(Data(:,1)/1000,Data(:,2))
+stairs(Data(:,1)/1000,Data(:,2), 'x-')
 xlabel("time in ms")
 grid on
 

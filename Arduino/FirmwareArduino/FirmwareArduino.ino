@@ -25,7 +25,7 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 // Pin Setup
 int analogForcePin = A0;    // A0 - Use whole name for analog pins
 int syncSignalPin = 3;      // D3 - Just use number for digital pins
-int pwmInterruptPin = 10;   // D10 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
+int pwmInterruptPin = 9;   // D9 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
 int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables

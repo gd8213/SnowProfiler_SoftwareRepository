@@ -28,10 +28,10 @@ void loop() {
 
 
 for (int i = 0; i < TIME_SIZE; i++){
-          Serial.print(timing[i]-timing[0]);
+          Serial.print(timing[i]-0);
           Serial.print(", ");
         }
-        Serial.println();
+        Serial.print("\r\n");
         for (int i = 0; i < TIME_SIZE; i++){
           Serial.print(state[i]);
           Serial.print(", ");
@@ -62,3 +62,6 @@ void ISR_PWM() {
 
   digitalWrite(LED_BUILTIN, digitalRead(pwmInterruptPin));
 }
+
+
+// 3205Hz with c=3000 and r=3200

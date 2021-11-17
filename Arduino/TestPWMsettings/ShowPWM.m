@@ -43,6 +43,8 @@ clear opts
 % plot(Data(:,1)/1000,Data(:,2), 'x-')
 % grid on
 
+Data(:,1) = Data(:,1)-Data(1,1);
+
 figure
 stairs(Data(:,1)/1000,Data(:,2), 'x-')
 xlabel("time in ms")

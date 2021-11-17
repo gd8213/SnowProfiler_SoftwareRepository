@@ -350,27 +350,28 @@ float ReadAccelFromArduino() {
         z = data[2] * 4.0 / 32768.0;
         accel[i]  = sqrt(x*x + y*y + z*z);
     } 
+    
     return (accel[0] + accel[1] + accel[2] )/3;
 } 
 
 
 int main() {
+    printf("-----------------------------\r\n");
     printf("Raspy Firmware is starting... \r\n");
-    
+    printf("-----------------------------\r\n");
+    printf("\r\n");
+    printf("\r\n");
 
 #ifdef DEBUG
-    // WiringPi Setup
-    wiringPiSetup();
 
-    // Testing the Workflow with Arduino
-    OpenI2C();
-
-    InitArduinoIMU();
-    float res = ReadAccelFromArduino();
+ //   InitArduinoIMU();
+ //   float res = ReadAccelFromArduino();
 
 // -----------------------------------------------------------------------------------------
-/* Complete Flow
+ // Complete Flow
 
+    wiringPiSetup();
+    OpenI2C();
     InitPWM();
     SetDutyCyclePWM(PWM_PIN_MEAS, 0);
     SetCamLightOnArduino(0);
@@ -393,7 +394,7 @@ int main() {
     sleep(6);
     printf("Finished cam Recording \r\n");   
 
-*/  
+
 // -----------------------------------------------------------------------------------------
 #endif
 

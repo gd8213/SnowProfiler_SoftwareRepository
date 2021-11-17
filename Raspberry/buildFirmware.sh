@@ -1,0 +1,1 @@
+/usr/bin/gcc -g Raspy_Firmware.c -o Raspy_Firmware -lwiringPi -lm

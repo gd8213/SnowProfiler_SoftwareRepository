@@ -23,13 +23,16 @@
 
 #ifdef RASPY_4
     #define PWM_CLOCK 54000000  // For Raspy 4
+	#define PWM_PIN_IR 26            // wiring pi pin -> PWM0
+	#define PWM_PIN_MEAS 23         // wiring pi pin -> PWM1
 #else
-    #define PWM_CLOCK 19200000  // For Raspy 3/3++
+    #define PWM_CLOCK 19200000  // For Raspy 3/3++, CM3/3+
+	#define PWM_PIN_IR 12            // wiring pi pin -> PWM0
+	#define PWM_PIN_MEAS 13         // wiring pi pin -> PWM1
 #endif
 
 // Pins 
-#define PWM_PIN_IR 26            // wiring pi pin -> PWM0
-#define PWM_PIN_MEAS 23         // wiring pi pin -> PWM1
+
 
 
 // Arduino IMU

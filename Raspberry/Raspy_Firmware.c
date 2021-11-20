@@ -65,6 +65,8 @@
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 enum ProbeState state = probeInit;
 
+int recordingLength = 20;       // in sec
+
 int fd_i2c = -1;
 int fd_arduinoIMU = -1;
 
@@ -204,9 +206,11 @@ int StartCamRecording() {
     // Prepare Command
     // ffmpeg -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi 		// This one is the best; decrease resolution to get better fps
     // ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 
-    char command[] = "ffmpeg -loglevel quiet -nostdin -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
+    char command[] = "ffmpeg -loglevel quiet -nostdin -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t XX ";
+    sprintf(command, "ffmpeg -loglevel quiet -nostdin -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t %2d ", recordingLength);
     strcat(command,fileName);
     strcat(command," &");       // Run in Background
+
     int status = system(command); 
     return status;
 }
@@ -352,6 +356,8 @@ int main() {
 
  //   InitArduinoIMU();
  //   float res = ReadAccelFromArduino();
+ PrepareDataFileName();
+ StartCamRecording();
 
 // -----------------------------------------------------------------------------------------
  // Complete Flow
@@ -386,6 +392,7 @@ int main() {
 
 
 #ifndef DEBUG
+int freefallDelay = 100;        // in ms
     switch (state) {
         case probeInit:  
             printf("Raspy Firmware is starting up... \r\n");  
@@ -403,13 +410,20 @@ int main() {
 
         case probeMoving:   
             printf("--- State Probe Moving to Location. \r\n");
+            state = probeMoving;
             float accel = ReadAccelFromArduino();
             if (accel >= 0 && accel <= 0.2){
-                // Freefall detected
-                state = freeFall;
-            } else { 
-                state = probeMoving;
-            }             
+                delay(freefallDelay);
+                accel = ReadAccelFromArduino();
+                if (accel >= 0 && accel <= 0.2) {
+                    delay(freefallDelay);
+                    accel = ReadAccelFromArduino();
+                    if (accel >= 0 && accel <= 0.2) {
+                        // Freefall detected
+                        state = freeFall;
+                    } 
+                } 
+            }            
             break;
 
         case freeFall:      
@@ -421,14 +435,20 @@ int main() {
 
         case deceleration:  
             printf("--- State Hit Surface. Deceleration of Probe. \r\n");
+            state = deceleration;
             float accel = ReadAccelFromArduino();
             if (accel >= 0.95 && accel <= 1.05){
-                // Stop detected
-                state = stop;
-            } else { 
-                // Still moving
-                state = deceleration;
-            }   
+                delay(freefallDelay);
+                accel = ReadAccelFromArduino();
+                if (accel >= 0.95 && accel <= 1.05){
+                    delay(freefallDelay);
+                    accel = ReadAccelFromArduino();
+                    if (accel >= 0.95 && accel <= 1.05){
+                        // Stop detected
+                        state = stop;
+                    }
+                }  
+            } 
             break;
 
         case stop:          
@@ -452,9 +472,10 @@ int main() {
             printf("--- State recovering Probe. \r\n");
             StartCamRecording();
             SaveDataToCSV();
-            state = probeMoving;
+            sleep(recordingLength);      // Wait until recording is over
+            state = probeMoving;            
             break;
-        default:            break;
+        default:       state = probeInit;     break;
     }
 #endif
 

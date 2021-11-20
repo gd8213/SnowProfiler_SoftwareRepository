@@ -123,6 +123,11 @@ int ReadForceVecFromArduino() {
     // Open Bus to Arduino
     printf("Read force data from Arduion... \r\n");
 
+    if (fd_i2c < 0) {
+        printf("ERROR: File descriptor is wrong \r\n");
+        return -1;
+    }
+
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
             //ERROR HANDLING
@@ -168,6 +173,12 @@ int ReadAccelVector() {
 int SetCamLightOnArduino(unsigned int value) {
     // Set light with value = 0...255
     printf("Set light to %d... \r\n", value);
+
+    if (fd_i2c < 0) {
+        printf("ERROR: File descriptor is wrong \r\n");
+        return -1;
+    }
+
     // Write Bytes to Arduino 
     if (ioctl(fd_i2c, I2C_SLAVE, ARDUINO_I2C_ADDR) < 0) {
             printf("Failed to acquire bus access and/or talk to  slave.\n");
@@ -307,6 +318,10 @@ int InitArduinoIMU(){
     printf("Init of Arduino's IMU... \r\n");
     // Generate file descriptor
     fd_arduinoIMU = wiringPiI2CSetup(ARDUINO_IMU_ADDR);
+    if (fd_arduinoIMU < 0) {
+        printf("ERROR: File descriptor is wrong\r\n");
+        return -1;
+    }
 
     // Set the Accelerometer control register to work at 104 Hz, 4G,and in bypass mode and enable ODR/4
     // low pass filter(check figure9 of LSM6DS3's datasheet)
@@ -324,6 +339,10 @@ int InitArduinoIMU(){
 float ReadAccelFromArduino() {
     // Return accel in g
     printf("Read Arduino's IMU... \r\n");
+    if (fd_arduinoIMU < 0) {
+        printf("ERROR: Arduino IMU is not initialized with I2C. \r\n");
+        return -1;
+    }
 
     float accel[3];        // Acceleration in g
 
@@ -354,44 +373,39 @@ int main() {
 #ifdef DEBUG
 
 
- //   InitArduinoIMU();
- //   float res = ReadAccelFromArduino();
- PrepareDataFileName();
- StartCamRecording();
-
 // -----------------------------------------------------------------------------------------
  // Complete Flow
 
-    wiringPiSetup();
-    OpenI2C();
-    InitPWM();
-    SetDutyCyclePWM(PWM_PIN_MEAS, 0);
-    SetCamLightOnArduino(0);
-    printf("Raspy Initialization is done \r\n ");
+    if (wiringPiSetup() < 0)        printf("ERROR: wiringPiSetup Failed! \r\n");
+    if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
+    if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
 
-    printf("Start PWM \r\n");
-    PrepareDataFileName();
-    SetDutyCyclePWM(PWM_PIN_MEAS, 50);
+    if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
+    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    printf("Raspy Initialization is done \r\n ");
+    
+    printf("Start PWM for Measurement \r\n");
+    if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare File name \r\n");
+    if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set Meas PWM to 50 \r\n");
     sleep(3);
     
     printf("Measurement Done \r\n");
-    SetDutyCyclePWM(PWM_PIN_MEAS, 0);
-    ReadForceVecFromArduino();
-    SaveDataToCSV();
-
+    if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
+    if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
+    if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
+    
     printf("Start Cam Recording \r\n");
-    SetCamLightOnArduino(0);
-    StartCamRecording();
+    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
-    sleep(6);
+    sleep(recordingLength);
     printf("Finished cam Recording \r\n");   
 
 
 // -----------------------------------------------------------------------------------------
-#endif
 
 
-#ifndef DEBUG
+ #else
 int freefallDelay = 100;        // in ms
     switch (state) {
         case probeInit:  

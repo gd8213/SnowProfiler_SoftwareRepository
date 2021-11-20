@@ -21,17 +21,15 @@
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
 
-#ifdef RASPY_4
+#ifdef RASPY_4      // Domes private Raspy 4
     #define PWM_CLOCK 54000000  // For Raspy 4
 	#define PWM_PIN_IR 26            // wiring pi pin -> PWM0
 	#define PWM_PIN_MEAS 23         // wiring pi pin -> PWM1
-#else
+#else               // Compute Module or Raspby 3
     #define PWM_CLOCK 19200000  // For Raspy 3/3++, CM3/3+
 	#define PWM_PIN_IR 12            // wiring pi pin -> PWM0
 	#define PWM_PIN_MEAS 13         // wiring pi pin -> PWM1
 #endif
-
-// Pins 
 
 
 
@@ -196,7 +194,7 @@ int PrepareDataFileName() {
 } 
 
 int StartCamRecording() {
-    printf("Start Video Recording...");
+    printf("Start Video Recording...\r\n");
 
     // Prepare Filename
     char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.mjpg";
@@ -206,15 +204,9 @@ int StartCamRecording() {
     // Prepare Command
     // ffmpeg -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 5 output.avi 		// This one is the best; decrease resolution to get better fps
     // ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 
-    char command[] = "ffmpeg -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
+    char command[] = "ffmpeg -loglevel quiet -nostdin -s 640x480 -i /dev/video0 -c:v copy -c:a copy -y -t 30 ";
     strcat(command,fileName);
-    strcat(command," &");
-    
-    // Take Video
-	// & ... run in background
-	// -y ... overwrite existing file
-	// -t ... duration of video
-    //int status = system("ffmpeg -t 30 -f v4l2 -framerate 50 -video_size 1600x1200 -y -i /dev/video0 output.mjpg &"); 
+    strcat(command," &");       // Run in Background
     int status = system(command); 
     return status;
 }
@@ -321,16 +313,6 @@ int InitArduinoIMU(){
     res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL8_XL, 0x09);
     if (res != 0)    printf("ERROR: Failed to set ODR config on Arduino's IMU... \r\n");
 
-/*  // Gyro Settings not needed
-    //set the gyroscope control register to work at 104 Hz, 2000 dps and in bypass mode
-    res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL2_G, 0x4C);
-    if (res != 0)    printf("ERROR: Failed to set gyroscope on Arduino's IMU... \r\n");
-
-    // set gyroscope power mode to high performance and bandwidth to 16 MHz
-    res = wiringPiI2CWriteReg8(fd_arduinoIMU, ARDUINO_IMU_CTRL7_G, 0x00);
-    if (res != 0)    printf("ERROR: Failed to set gyro power mode on Arduino's IMU... \r\n");
-
-*/
     return res;
 } 
 
@@ -366,6 +348,7 @@ int main() {
     printf("\r\n");
 
 #ifdef DEBUG
+
 
  //   InitArduinoIMU();
  //   float res = ReadAccelFromArduino();

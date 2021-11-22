@@ -1,0 +1,2 @@
+SPI_functions.c:5:9:readREG	32	static
+SPI_functions.c:26:6:writeREG	24	static

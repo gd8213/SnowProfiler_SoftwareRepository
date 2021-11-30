@@ -70,9 +70,9 @@ int recordingLength = 5;       // in sec
 int fd_i2c = -1;
 int fd_arduinoIMU = -1;
 
-float forceVec[FORCE_SIZE] = { -1 };
-float accelVec[FORCE_SIZE] = { -1 };
-float timeVec[FORCE_SIZE] = { -1 };
+float forceVec[FORCE_SIZE] = { -1 };    // forceVec[0] => oldest value at t=0
+float accelVec[FORCE_SIZE] = { -1 };    // accelVec[0] => oldest value at t=0
+float timeVec[FORCE_SIZE] = { -1 };     // timeVec[0] = 0 and increasing
 
 struct tm tm;       // Time struct
 unsigned int pwmRange = 0;
@@ -84,7 +84,9 @@ int SetCamLightOnArduino(unsigned int);
 
 int InitArduinoIMU();
 float ReadAccelFromArduino();     // Return g
-int ReadAccelVector();
+
+int InitIMU();                      // Felbi: Init of your IMU
+int ReadAccelVectorFromIMU();              // Felbi: This function is called to get the whole acceleration data from your IMU
 
 int PrepareDataFileName();
 int StartCamRecording();
@@ -139,7 +141,7 @@ int ReadForceVecFromArduino() {
     // Actual I2C Communication
     actualRead = read(fd_i2c, &startIndex, sizeof(startIndex));
 
-    for (int i = 0; i < FORCE_SIZE/valuesPerPacket; i++){
+    for (int i = 0; i < FORCE_SIZE/valuesPerPacket; i++) {
         actualRead = read(fd_i2c, &tempVec[i*valuesPerPacket], sizeof(tempVec[0])*valuesPerPacket);
         readLength = readLength + actualRead;
         usleep(1000);
@@ -147,14 +149,14 @@ int ReadForceVecFromArduino() {
     
     
     printf("Received Data from Arduino %d/%d.\r\n", readLength, shouldLength);
-    if(shouldLength != readLength){
+    if (shouldLength != readLength) {
         printf("ERROR: Not all data received. \r\n");
         return -1;
     } 
 
     // Sort Vector
-    for (int i = 0; i < FORCE_SIZE; i++){
-        if(startIndex >= FORCE_SIZE){
+    for (int i = 0; i < FORCE_SIZE; i++) {
+        if (startIndex >= FORCE_SIZE) {
             startIndex = 0;
         } 
 
@@ -165,8 +167,16 @@ int ReadForceVecFromArduino() {
     return 0;
 }
 
-int ReadAccelVector() {
+int InitIMU() {
+    // ToDo initialization of IMU
+    // Paste your code here Felbi
+    return 0;
+}
+
+int ReadAccelVectorFromIMU() {
     // ToDo Get Acceleration from IMU
+    // Paste your code here Felbi
+    // Sort Vector
     return 0;
 }
 
@@ -393,13 +403,15 @@ int main() {
     printf("Measurement Done \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
     if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
+    if (ReadAccelVectorFromIMU() < 0)                          printf("ERROR: Failed to read accel vec from IMU \r\n");
     if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
     
     printf("Start Cam Recording \r\n");
-    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
     if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
     sleep(recordingLength);
+    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Finished cam Recording \r\n");   
 
 
@@ -471,7 +483,7 @@ int freefallDelay = 100;        // in ms
             SetDutyCyclePWM(PWM_PIN_MEAS, 0);
 
 			ReadForceVecFromArduino();
-            ReadAccelVector();
+            ReadAccelVectorFromIMU();
             
             float accel = ReadAccelFromArduino();
             if (accel <= 0.95|| accel >= 1.05){

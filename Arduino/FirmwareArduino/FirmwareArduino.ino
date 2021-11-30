@@ -173,12 +173,14 @@ void SendToRaspyEvent() {
   int valuesPerPacket = 32;
 
   if (packetIndex < 0) {
+    // First packet is the start index (oldest value)
     Serial.print("Send force vector beginning: ");   // Debug
     Serial.print(currentForceIndex);
     Serial.print(" to Raspy... \r\n");
 
     Wire.write((byte *) &currentForceIndex, sizeof(currentForceIndex));
   } else {
+    // Afterwards only data is sent
     Serial.print("Send force vector packet ");   // Debug
     Serial.print(packetIndex+1);
     Serial.print("/");

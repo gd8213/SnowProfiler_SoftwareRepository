@@ -1,0 +1,2 @@
+SPI_user.c:3:16:lsm6ds3_read	24	static
+SPI_user.c:14:16:lsm6ds3_write	24	static

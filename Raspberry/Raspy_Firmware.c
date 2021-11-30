@@ -430,6 +430,7 @@ int freefallDelay = 100;        // in ms
             } 
             OpenI2C();
             InitPWM();
+	    InitIMU();
             SetDutyCyclePWM(PWM_PIN_IR, 50);        // PWM for IR-LED
             SetDutyCyclePWM(PWM_PIN_MEAS, 0);
             state = probeMoving;

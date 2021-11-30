@@ -17,7 +17,7 @@
 // Constants
 #define FORCE_SIZE 4096
 #define I2C_ADDR 0x05         // Address in I2C bus
-float maxForceRange = 300.0f;   // in Newton -> ToDo Check with Sensor
+float maxForceRange = 1000.0f;   // in Newton -> ToDo Check with Sensor
 
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 
@@ -142,10 +142,11 @@ float ReadForceSensor() {
 
 float GetForceFromMeasurement(int rawValue) {
   // Voltage from 0-3.3V will map to 0-1023 (10Bit resolution). ATTENTION connect only 3.3V
-  float maxVoltage = 3.3;
+  //float maxVoltage = 3.3;
 
-  float voltage = (float) rawValue * maxVoltage / 1023;
-  float force = maxForceRange * voltage / maxVoltage;
+  //float voltage = (float) rawValue * maxVoltage / 1023;
+  //float force = maxForceRange * voltage / maxVoltage;
+  float force = maxForceRange * (float) rawValue / 1023.0;
   return force;
 }
 

@@ -483,9 +483,6 @@ int freefallDelay = 100;        // in ms
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
             SetDutyCyclePWM(PWM_PIN_MEAS, 0);
 
-			ReadForceVecFromArduino();
-            ReadAccelVectorFromIMU();
-            
             float accel = ReadAccelFromArduino();
             if (accel <= 0.95|| accel >= 1.05){
                 // Started moving upwards
@@ -499,6 +496,8 @@ int freefallDelay = 100;        // in ms
         case probeRecovery: 
             printf("--- State recovering Probe. \r\n");
             StartCamRecording();
+            ReadForceVecFromArduino();
+            ReadAccelVectorFromIMU();
             SaveDataToCSV();
             sleep(recordingLength);      // Wait until recording is over
             state = probeMoving;            

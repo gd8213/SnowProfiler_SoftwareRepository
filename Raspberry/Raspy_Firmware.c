@@ -239,7 +239,7 @@ int StartCamRecording() {
 
 int InitPWM() {
     // Initialize PWM for 2kHz measurement -> pwm carrier 2kHz
-    // Use system call because library has problems with root
+    // Use system call because library has problems with root -> Maybe use sudo
     // https://raspberrypi.stackexchange.com/questions/4906/control-hardware-pwm-frequency
     printf("Initialize PWM... \r\n");
 
@@ -251,7 +251,7 @@ int InitPWM() {
     system(command);
 
     // Pin mode to PWM
-    system("sudo gpio pwm-ms");
+    system("gpio pwm-ms");
 
     // Set PWM carrier frequency with resolution
     #ifdef RASPY_4
@@ -259,8 +259,8 @@ int InitPWM() {
         // Range=2000, Clock=27, f_pwm=1kHz
         // Range=3000, Clock=9, f_pwm=2kHz
         pwmRange = 3000;
-        system("sudo gpio pwmc 9");        // Clock
-        system("sudo gpio pwmr 3000");      // Range
+        system("gpio pwmc 9");        // Clock
+        system("gpio pwmr 3000");      // Range
     #else
         // f_pwm = 19200000 / Clock / Range
         // Range=1920, Clock=10, f_pwm=1kHz
@@ -290,8 +290,8 @@ int SetDutyCyclePWM(int pin, int dutyCycle){
 
     printf("Set Duty Cycle for pin %d to %d percent. \r\n", pin, dutyCycle);
 
-    char command[] = "sudo gpio pwm xx xxxx";
-    sprintf(command, "sudo gpio pwm %2d %4d", pin, pwmRange/100*dutyCycle);
+    char command[] = "gpio pwm xx xxxx";            // Maybe sudo needed
+    sprintf(command, "gpio pwm %2d %4d", pin, pwmRange/100*dutyCycle);
     
     return system(command);
 }

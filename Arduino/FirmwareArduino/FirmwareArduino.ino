@@ -198,15 +198,12 @@ void SendToRaspyEvent() {
 }
 
 void GetLightFromRaspy(int howMany) {
-  // Not used at the moment -> Maybe for setting light of Endoscope
-  //while (Wire.available()) { // loop through all but the last
     unsigned int value = Wire.read(); // receive byte as a character
     Serial.print("Set Camera light to ");
     Serial.print(value);
     Serial.print("/255 \r\n");
 
-    analogWrite(analogCamLightPin, value);
- // }
+    analogWrite(analogCamLightPin, value);    // analogWrite: 0.255
 }
 
 

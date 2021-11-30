@@ -80,7 +80,7 @@ unsigned int pwmRange = 0;
 // Function Prototypes
 int OpenI2C();
 int ReadForceVecFromArduino();
-int SetCamLightOnArduino();
+int SetCamLightOnArduino(unsigned int);
 
 int InitArduinoIMU();
 float ReadAccelFromArduino();     // Return g
@@ -170,9 +170,10 @@ int ReadAccelVector() {
     return 0;
 }
 
-int SetCamLightOnArduino(unsigned int value) {
-    // Set light with value = 0...255
-    printf("Set light to %d... \r\n", value);
+int SetCamLightOnArduino(unsigned int valuePercent) {      
+    // value in range of 0...100 is equal to percent
+    // Arduino receives 0...255 where a minimum voltage of 3V is included
+    printf("Set light to %d percent... \r\n", valuePercent);
 
     if (fd_i2c < 0) {
         printf("ERROR: File descriptor is wrong \r\n");
@@ -186,9 +187,10 @@ int SetCamLightOnArduino(unsigned int value) {
             return -1;
     }
 
-    
-    int actual = write(fd_i2c, &value, sizeof(value));
-    if (actual != sizeof(value)) {
+    unsigned int valueToArduino = 230;  // Equal to 0% lightning -> minimum Voltage of LED needed
+    valueToArduino = valueToArduino + 0.25 * valuePercent;
+    int actual = write(fd_i2c, &valueToArduino, sizeof(valueToArduino));
+    if (actual != sizeof(valueToArduino)) {
 //write() returns the number of bytes actually written, if it doesn't match then an erro$
             // ERROR HANDLING: i2c transaction failed
             printf("ERROR: Failed to Set endoscope light.\r\n");
@@ -201,7 +203,6 @@ int PrepareDataFileName() {
     printf("Prepare File name with current time...\r\n");
     time_t t = time(NULL);
     tm = *localtime(&t);
-    //struct tm tm = *localtime(&t);
 
     return 0;
 } 

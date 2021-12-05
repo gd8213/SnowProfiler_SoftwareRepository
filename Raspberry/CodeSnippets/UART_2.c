@@ -49,10 +49,31 @@ int main(void)
 	FILE *ofd;
 	int32_t n, i;
 	u_int32_t bytes;
-	u_int8_t buff[10000];
+	u_int8_t buff[25];
 
 	// Initialize the serial port
 	initComPort(&sfd, SERDEV);
+
+	// Bytes senden
+	unsigned char BUF_TX[20];
+	unsigned char *TX;
+
+	TX = &BUF_TX[0];
+	*TX++ = 'S';
+	*TX++ = 't';
+	*TX++ = 'o';
+	*TX++ = 'p';
+
+
+	if (sfd != -1) {
+		int out = write(sfd, &BUF_TX[0], (TX - &BUF_TX[0])); // 
+		if (out < 0) {
+			printf("[ERROR] UART TX\n");
+		}
+		else {
+			printf("[STATUS: TX %i Bytes] %s\n", out, BUF_TX);
+		}
+	} // if uart0
 
 	while (1)
 	{
@@ -60,8 +81,9 @@ int main(void)
 		ioctl(sfd, FIONREAD, &bytes);
 		if (bytes > 0)
 		{
+			printf("Bytes in Receive: %i\n", bytes);
 			// Read what we can
-			n = read(sfd, buff, 10000);
+			n = read(sfd, buff, bytes);
 			
 			if (n < 0)
 			{
@@ -72,6 +94,7 @@ int main(void)
 			{
 				print(buff);
 
+				// file write begin
 				/*
 				ofd = fopen("data.bin", "a");
 				if (ofd == NULL)

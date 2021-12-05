@@ -38,7 +38,12 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+#define TXBUFFERSIZE                      (COUNTOF(aTxBuffer) - 1)
+/* Size of Reception buffer */
+#define RXBUFFERSIZE                      10
 
+/* Exported macro ------------------------------------------------------------*/
+#define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -62,6 +67,8 @@ void Error_Handler(void);
 #define PWMI_RAS_Pin GPIO_PIN_8
 #define PWMI_RAS_GPIO_Port GPIOB
 #define PWMI_RAS_EXTI_IRQn EXTI9_5_IRQn
+#define CS_IMU_Pin GPIO_PIN_12
+#define CS_IMU_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

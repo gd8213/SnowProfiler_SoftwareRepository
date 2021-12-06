@@ -277,7 +277,7 @@ int ReadAccelVectorFromIMU() {
 			}
 			if (n > 0)
 			{
-				printf("Bytes read %i\r\n", n)
+				printf("Bytes read %i\r\n", n);
 				printf(buff);
 
 				// file write begin
@@ -295,7 +295,7 @@ int ReadAccelVectorFromIMU() {
 				*/
 			}
 		}
-		else{printf("No bytes from IMU available\r\n")
+		else { printf("No bytes from IMU available\r\n"0); }
 
 
     return 0;

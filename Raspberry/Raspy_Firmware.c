@@ -263,39 +263,42 @@ int ReadAccelVectorFromIMU() {
 	//##########################################
 	// read STM32 UART data
 	// Check if there's any data available to read
-		ioctl(sfd, FIONREAD, &bytes);
-		if (bytes > 0)
+		while (1)
 		{
-			// printf("Bytes in Receive: %i\n", bytes);
-			// Read what we can
-			n = read(sfd, buff, 10000);
-
-			if (n < 0)
+			ioctl(sfd, FIONREAD, &bytes);
+			if (bytes > 0)
 			{
-				printf("Read failed\r\n");
-				//				fprintf(stderr, "read failed\n");
-			}
-			if (n > 0)
-			{
-				printf("Bytes read %i\r\n", n);
-				printf(buff);
+				// printf("Bytes in Receive: %i\n", bytes);
+				// Read what we can
+				n = read(sfd, buff, 10000);
 
-				// file write begin
-				/*
-				ofd = fopen("data.bin", "a");
-				if (ofd == NULL)
+				if (n < 0)
 				{
-				fprintf(stderr, "unable to open output file\n");
-				exit(2);
+					printf("Read failed\r\n");
+					//				fprintf(stderr, "read failed\n");
 				}
+				if (n > 0)
+				{
+					printf("Bytes read %i\r\n", n);
+					printf(buff);
 
-				fwrite(buff, 1, n, ofd);
+					// file write begin
+					/*
+					ofd = fopen("data.bin", "a");
+					if (ofd == NULL)
+					{
+					fprintf(stderr, "unable to open output file\n");
+					exit(2);
+					}
 
-				fclose(ofd);
-				*/
+					fwrite(buff, 1, n, ofd);
+
+					fclose(ofd);
+					*/
+				}
 			}
+			else { printf("No bytes from IMU available\r\n"); }
 		}
-		else { printf("No bytes from IMU available\r\n"); }
 
 
     return 0;

@@ -128,7 +128,7 @@ int main(void)
 
 			if (n < 0)
 			{
-				printf("Read failed");
+				printf("Read failed\r\n");
 				//				fprintf(stderr, "read failed\n");
 			}
 			if (n > 0)

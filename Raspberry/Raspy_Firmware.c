@@ -185,18 +185,18 @@ int InitIMU() {
 	// start init UART to STM32
 	struct termios options;
 
-	*sfd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
-	if (*sfd == -1)
+	sfd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+	if (sfd == -1)
 	{
 		fprintf(stderr, "unable to open %s\n", device);
 		exit(1);
 	}
 	else
 	{
-		fcntl(*sfd, F_SETFL, FNDELAY);
+		fcntl(sfd, F_SETFL, FNDELAY);
 	}
 
-	tcgetattr(*sfd, &options);
+	tcgetattr(sfd, &options);
 
 	cfsetispeed(&options, B115200);
 	cfsetospeed(&options, B115200);
@@ -210,7 +210,7 @@ int InitIMU() {
 	options.c_cc[VMIN] = 1;
 	options.c_cc[VTIME] = 0;
 
-	tcsetattr(*sfd, TCSANOW, &options);
+	tcsetattr(sfd, TCSANOW, &options);
 	// end init UART to STM32
 	//###############################################################################
 

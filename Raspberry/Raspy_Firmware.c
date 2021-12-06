@@ -6,6 +6,12 @@
 #include <stdlib.h>         // USB cam system call
 #include <math.h>           // Sqrt
 
+#include <termios.h>		// for UART
+#include <fcntl.h>			// for UART
+#include <unistd.h>			// for UART
+#include <sys/ioctl.h>		// for UART
+#include <sys/types.h>		// for UART
+
 #include <wiringPi.h>       // GPIO -> see GPIO_Raspy.c for needed Setup
 #include <wiringPiI2C.h>    // I2C functions to read Registers -> Arduino IMU
 

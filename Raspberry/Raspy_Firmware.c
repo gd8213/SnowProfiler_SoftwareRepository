@@ -248,14 +248,14 @@ int ReadAccelVectorFromIMU() {
 	//{
 		if (sfd != -1)
 		{
-			int count = write(sfd, &tx_buffer[0], 6);		//Filestream, bytes to write, number of bytes to write
+			int count = write(sfd, &tx_buffer[0], 7);		//Filestream, bytes to write, number of bytes to write
 			if (count < 0)
 			{
 				printf("UART TX error\n");
 			}
 			else
 			{
-				printf("Count: %i\n", count);
+				printf("TX Bytes send: %i\n", count);
 			}
 		}
 		//sleep(1);
@@ -277,6 +277,7 @@ int ReadAccelVectorFromIMU() {
 			}
 			if (n > 0)
 			{
+				printf("Bytes read %i\r\n", n)
 				printf(buff);
 
 				// file write begin
@@ -294,6 +295,7 @@ int ReadAccelVectorFromIMU() {
 				*/
 			}
 		}
+		else{printf("No bytes from IMU available\r\n")
 
 
     return 0;

@@ -6,6 +6,12 @@
 #include <stdlib.h>         // USB cam system call
 #include <math.h>           // Sqrt
 
+#include <termios.h>		// for UART
+#include <fcntl.h>			// for UART
+#include <unistd.h>			// for UART
+#include <sys/ioctl.h>		// for UART
+#include <sys/types.h>		// for UART
+
 #include <wiringPi.h>       // GPIO -> see GPIO_Raspy.c for needed Setup
 #include <wiringPiI2C.h>    // I2C functions to read Registers -> Arduino IMU
 
@@ -15,8 +21,10 @@
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define DEBUG
-#define RASPY_4         // Remove on CM3 !!!!!!!!
+//#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#define SERDEV "/dev/serial0" // define UART port to STM32 IMU
 
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
@@ -170,6 +178,40 @@ int ReadForceVecFromArduino() {
 int InitIMU() {
     // ToDo initialization of IMU
     // Paste your code here Felbi
+
+	//###############################################################################
+	// start init UART to STM32
+	struct termios options;
+
+	*sfd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+	if (*sfd == -1)
+	{
+		fprintf(stderr, "unable to open %s\n", device);
+		exit(1);
+	}
+	else
+	{
+		fcntl(*sfd, F_SETFL, FNDELAY);
+	}
+
+	tcgetattr(*sfd, &options);
+
+	cfsetispeed(&options, B115200);
+	cfsetospeed(&options, B115200);
+
+	cfmakeraw(&options);
+
+	options.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
+	options.c_cflag |= (CLOCAL | CREAD | CS8);
+
+	options.c_oflag &= ~OPOST;
+	options.c_cc[VMIN] = 1;
+	options.c_cc[VTIME] = 0;
+
+	tcsetattr(*sfd, TCSANOW, &options);
+	// end init UART to STM32
+	//###############################################################################
+
     return 0;
 }
 
@@ -177,6 +219,82 @@ int ReadAccelVectorFromIMU() {
     // ToDo Get Acceleration from IMU
     // Paste your code here Felbi
     // Sort Vector
+	
+	int sfd;
+	FILE *ofd;
+	int32_t n, i;
+	u_int32_t bytes;
+	u_int8_t buff[25];
+
+	// Initialize the serial port
+	initComPort(&sfd, SERDEV);
+
+	//##########################################
+	// Write to STM32 (IMU) 
+	//----- TX BYTES -----
+	unsigned char tx_buffer[20];
+	unsigned char *p_tx_buffer;
+
+	p_tx_buffer = &tx_buffer[0];
+	*p_tx_buffer++ = 'S';
+	*p_tx_buffer++ = 't';
+	*p_tx_buffer++ = 'o';
+	*p_tx_buffer++ = 'p';
+	*p_tx_buffer++ = 'p';
+	*p_tx_buffer++ = '\r';
+	*p_tx_buffer++ = '\n';
+	//while (1)
+	//{
+		if (sfd != -1)
+		{
+			int count = write(sfd, &tx_buffer[0], 6);		//Filestream, bytes to write, number of bytes to write
+			if (count < 0)
+			{
+				printf("UART TX error\n");
+			}
+			else
+			{
+				printf("Count: %i\n", count);
+			}
+		}
+		//sleep(1);
+	//}
+	//##########################################
+	// read STM32 UART data
+	// Check if there's any data available to read
+		ioctl(sfd, FIONREAD, &bytes);
+		if (bytes > 0)
+		{
+			// printf("Bytes in Receive: %i\n", bytes);
+			// Read what we can
+			n = read(sfd, buff, 10000);
+
+			if (n < 0)
+			{
+				printf("Read failed\r\n");
+				//				fprintf(stderr, "read failed\n");
+			}
+			if (n > 0)
+			{
+				printf(buff);
+
+				// file write begin
+				/*
+				ofd = fopen("data.bin", "a");
+				if (ofd == NULL)
+				{
+				fprintf(stderr, "unable to open output file\n");
+				exit(2);
+				}
+
+				fwrite(buff, 1, n, ofd);
+
+				fclose(ofd);
+				*/
+			}
+		}
+
+
     return 0;
 }
 

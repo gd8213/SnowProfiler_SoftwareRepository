@@ -21,8 +21,10 @@
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define DEBUG
-#define RASPY_4         // Remove on CM3 !!!!!!!!
+//#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#define SERDEV "/dev/serial0" // define UART port to STM32 IMU
 
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05

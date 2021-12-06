@@ -295,7 +295,7 @@ int ReadAccelVectorFromIMU() {
 				*/
 			}
 		}
-		else { printf("No bytes from IMU available\r\n"0); }
+		else { printf("No bytes from IMU available\r\n"); }
 
 
     return 0;

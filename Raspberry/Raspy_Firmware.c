@@ -509,6 +509,7 @@ int main() {
     if (wiringPiSetup() < 0)        printf("ERROR: wiringPiSetup Failed! \r\n");
     if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
     if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
+	InitIMU();						
 
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
     if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
@@ -517,19 +518,19 @@ int main() {
     printf("Start PWM for Measurement \r\n");
     if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare File name \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set Meas PWM to 50 \r\n");
-    sleep(3);
+    sleep(1);
     
     printf("Measurement Done \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
     if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
-    if (ReadAccelVectorFromIMU() < 0)                          printf("ERROR: Failed to read accel vec from IMU \r\n");
+    if (ReadAccelVectorFromIMU() < 0)                   printf("ERROR: Failed to read accel vec from IMU \r\n");
     if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
     
     printf("Start Cam Recording \r\n");
-    if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
-    if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
+    // if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
+    // if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
-    sleep(recordingLength);
+    // sleep(recordingLength);
     if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Finished cam Recording \r\n");   
 

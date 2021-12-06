@@ -49,11 +49,14 @@ USART_HandleTypeDef husart2;
 uint32_t TIMEOUT_DURATION=5000;
 uint32_t Timeout=10000;
 SPI_HandleTypeDef hspi2;
-uint8_t flag=0;
+HAL_StatusTypeDef status_spi;
+uint8_t flag=1;
 uint16_t accel_data_x[8000]={0};
 uint16_t accel_data_y[8000]={0};
 uint16_t accel_data_z[8000]={0};
 uint8_t rxBuffer[5];
+uint8_t aTxBuffer[]="hello\r\n";
+uint16_t i=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,6 +73,7 @@ uint16_t lsm6dsm_read_accel(float* accel_x,float* accel_y,float* accel_z);
 static int32_t lsm6ds3_read(void *handle, uint8_t reg, uint8_t *bufp,uint16_t len);
 static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t len);
 void whoami(void);
+static void Error_Handler_1(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -109,37 +113,66 @@ int main(void)
   MX_UART5_Init();
   MX_USART2_Init();
   /* USER CODE BEGIN 2 */
-
+	Error_Handler_1();
 	float acc_x;
 	float acc_y;
 	float acc_z;
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
 
-	// uint8_t CTRL3_C_reg=0x12;
-	// uint8_t CTRL3_C_set_sim=0b00001100;
-	// lsm6ds3_write(&hspi2, CTRL3_C_reg, &CTRL3_C_set_sim, 1);
-
-	uint16_t i=0;
+	lsm6dsm_init();
 	whoami(); // check if device can be found
 
 	// set UART5 interrupt
-	HAL_UART_Receive_IT(&huart5, rxBuffer, 5);
- /* USER CODE END 2 */
+	// HAL_UART_Receive_IT(&huart5, rxBuffer, 5);
+
+  /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+
+	flag=1;
   while (1)
   {
-	  if(flag==1)
-	  {
-		  i++;
-		  lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
-		  flag=0;
+	  HAL_UART_Receive(&huart5, rxBuffer, 5,1000);
+//	  	  if (HAL_UART_Receive(&huart5, rxBuffer, 5,1000) != HAL_OK)
+//	  	  {
+//	  			/* Transfer error in transmission process */
+//	  			Error_Handler_1();
+//	  	  }
 
-		  accel_data_x[i]=acc_x;
-		  accel_data_y[i]=acc_y;
-		  accel_data_z[i]=acc_z;
+	  HAL_Delay(500);
 
-	  }
+
+
+
+//	  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+//	  HAL_UART_Transmit(&huart5, (uint8_t *)aTxBuffer, TXBUFFERSIZE, TIMEOUT_DURATION);
+//	  if (HAL_UART_Transmit(&huart5, (uint8_t *)aTxBuffer, TXBUFFERSIZE,TIMEOUT_DURATION) != HAL_OK)
+//	  {
+//			/* Transfer error in transmission process */
+//			Error_Handler_1();
+//	  }
+//	  HAL_Delay(500);
+//	  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
+//	  HAL_Delay(500);
+
+//	  flag=1;
+//	  if(flag==1)
+//	  {
+//		  i++;
+//		  lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
+//		  flag=0;
+//
+//		  if(i<=8000)
+//		  {// max storage is 8000 byte
+//		  accel_data_x[i]=acc_x;
+//		  accel_data_y[i]=acc_y;
+//		  accel_data_z[i]=acc_z;
+//		  }
+
+//	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -208,7 +241,7 @@ static void MX_SPI2_Init(void)
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
   hspi2.Init.Direction = SPI_DIRECTION_1LINE;
-  hspi2.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
@@ -319,7 +352,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(CS_IMU_GPIO_Port, CS_IMU_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PG12 */
   GPIO_InitStruct.Pin = GPIO_PIN_12;
@@ -340,12 +373,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  /*Configure GPIO pin : CS_IMU_Pin */
+  GPIO_InitStruct.Pin = CS_IMU_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(CS_IMU_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
@@ -358,37 +391,69 @@ static void MX_GPIO_Init(void)
 void whoami(void)
 {
 	// adr_WHO_AM_I has to be 0x6a
-	uint8_t who_am_i;
-	uint8_t who_am_i_reg=0x0F;
+	uint8_t who_am_i=0x00;
+	uint8_t who_am_i_reg=0x0f;
+
 	lsm6ds3_read(&hspi2, who_am_i_reg, &who_am_i, 1);
 
 	if(who_am_i!=0x6a)
 	{
 		// error when jumping in here
 		// device not found!!!
+		// possible problems can be wrong DEBUG port is used
 		while(1)
 		{
+			lsm6ds3_read(&hspi2, who_am_i_reg, &who_am_i, 1);
+			if(who_am_i==0x6a){break;}
 		}
 	}
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
+{   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
 	// __NOP(); // used to debug the Callback
+	int size;
+	char data_s[25];
 
 	flag=0;
-	uint8_t data_tab=0xff;
-	uint16_t size=sizeof(accel_data_x);
-	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_x, size, Timeout);
-	HAL_UART_Transmit(&huart5, &data_tab, 1, Timeout);
-	size=sizeof(accel_data_y);
-	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_y, size, Timeout);
-	HAL_UART_Transmit(&huart5, &data_tab, 1, Timeout);
-	size=sizeof(accel_data_z);
-	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_z, 8000, Timeout);
+	for(int j=0; j<=i;j++)
+	{
+		size = sprintf(data_s, "X: %i,Y: %i,Z :%i\r\n",accel_data_x[j],accel_data_y[j],accel_data_z[j]);
+		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
+	}
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+}
+
+//	flag=0;
+//	uint8_t data_tab=0xff;
+//	uint16_t size=sizeof(accel_data_x);
+//	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_x, size, Timeout);
+//	HAL_UART_Transmit(&huart5, &data_tab, 1, Timeout);
+//
+//	size=sizeof(accel_data_y);
+//	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_y, size, Timeout);
+//	HAL_UART_Transmit(&huart5, &data_tab, 1, Timeout);
+//
+//	size=sizeof(accel_data_z);
+//	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_z, 8000, Timeout);
 
 	// check if parity bit is needed for UART!
 
+
+
+static void Error_Handler_1(void)
+{
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+	HAL_Delay(400);
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
+	HAL_Delay(400);
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+	HAL_Delay(400);
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
+	HAL_Delay(400);
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+	HAL_Delay(400);
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
 }
 
 void lsm6dsm_init(void)
@@ -538,10 +603,10 @@ uint16_t lsm6dsm_read_gyro(float* gyro_x,float* gyro_y,float* gyro_z)
 
 static int32_t lsm6ds3_read(void *handle, uint8_t reg, uint8_t *bufp,uint16_t len)
 {
-	reg |= 0x80; // set to one for read operation
+	reg |= 0x80; // set MSB to one for read operation
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(handle, &reg, 1, TIMEOUT_DURATION);
-	HAL_SPI_Receive(handle, bufp, len, TIMEOUT_DURATION);
+	status_spi=HAL_SPI_Transmit(handle, &reg, 1, TIMEOUT_DURATION);
+	status_spi=HAL_SPI_Receive(handle, bufp, len, TIMEOUT_DURATION);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
 
   return 0;
@@ -549,9 +614,10 @@ static int32_t lsm6ds3_read(void *handle, uint8_t reg, uint8_t *bufp,uint16_t le
 
 static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t len)
 {
+	reg |= 0x00;
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(handle, &reg, 1, TIMEOUT_DURATION);
-	HAL_SPI_Transmit(handle, bufp, len, TIMEOUT_DURATION);
+	status_spi=HAL_SPI_Transmit(handle, &reg, 1, TIMEOUT_DURATION);
+	status_spi=HAL_SPI_Transmit(handle, bufp, len, TIMEOUT_DURATION);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
 
   return 0;
@@ -559,7 +625,7 @@ static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t le
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	flag=0;
+	flag=1;
 }
 
 /* USER CODE END 4 */

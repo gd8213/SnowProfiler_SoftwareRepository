@@ -24,7 +24,7 @@
 //#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#define SERDEV "/dev/serial0" // define UART port to STM32 IMU
+#define device "/dev/serial0" // define UART port to STM32 IMU
 
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
@@ -77,6 +77,8 @@ int recordingLength = 5;       // in sec
 
 int fd_i2c = -1;
 int fd_arduinoIMU = -1;
+
+int sfd;						// for UART STM IMU
 
 float forceVec[FORCE_SIZE] = { -1 };    // forceVec[0] => oldest value at t=0
 float accelVec[FORCE_SIZE] = { -1 };    // accelVec[0] => oldest value at t=0
@@ -220,14 +222,13 @@ int ReadAccelVectorFromIMU() {
     // Paste your code here Felbi
     // Sort Vector
 	
-	int sfd;
 	FILE *ofd;
 	int32_t n, i;
 	u_int32_t bytes;
 	u_int8_t buff[25];
 
 	// Initialize the serial port
-	initComPort(&sfd, SERDEV);
+	// initComPort(&sfd, SERDEV);
 
 	//##########################################
 	// Write to STM32 (IMU) 

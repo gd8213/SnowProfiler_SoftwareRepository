@@ -24,7 +24,7 @@
 //#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#define device "/dev/serial0" // define UART port to STM32 IMU
+#define device "/dev/ttyS0" // define UART port to STM32 IMU
 
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
@@ -205,6 +205,7 @@ int InitIMU() {
 
 	options.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
 	options.c_cflag |= (CLOCAL | CREAD | CS8);
+	// options.c_lflag |= (ICANON | ECHO | ECHOE | ISIG );
 
 	options.c_oflag &= ~OPOST;
 	options.c_cc[VMIN] = 1;
@@ -225,7 +226,7 @@ int ReadAccelVectorFromIMU() {
 	FILE *ofd;
 	int32_t n, i;
 	u_int32_t bytes;
-	u_int8_t buff[25];
+	u_int8_t buff[256];
 
 	// Initialize the serial port
 	// initComPort(&sfd, SERDEV);
@@ -244,8 +245,7 @@ int ReadAccelVectorFromIMU() {
 	*p_tx_buffer++ = 'p';
 	*p_tx_buffer++ = '\r';
 	*p_tx_buffer++ = '\n';
-	//while (1)
-	//{
+
 		if (sfd != -1)
 		{
 			int count = write(sfd, &tx_buffer[0], 7);		//Filestream, bytes to write, number of bytes to write
@@ -258,46 +258,35 @@ int ReadAccelVectorFromIMU() {
 				printf("TX Bytes send: %i\n", count);
 			}
 		}
-		//sleep(1);
-	//}
+
 	//##########################################
 	// read STM32 UART data
 	// Check if there's any data available to read
+		int i = 0;
 		while (1)
 		{
 			ioctl(sfd, FIONREAD, &bytes);
-			if (bytes > 0)
+			if (bytes >0 )
 			{
-				// printf("Bytes in Receive: %i\n", bytes);
 				// Read what we can
-				n = read(sfd, buff, 10000);
+				n = read(sfd, buff, 6);
 
 				if (n < 0)
 				{
 					printf("Read failed\r\n");
-					//				fprintf(stderr, "read failed\n");
 				}
 				if (n > 0)
 				{
-					printf("Bytes read %i\r\n", n);
-					printf(buff);
+					// Convert Buffer to float.
+					// values are received in mg
+					accelVec[i] = atof(buff);
+					i++;
 
-					// file write begin
-					/*
-					ofd = fopen("data.bin", "a");
-					if (ofd == NULL)
-					{
-					fprintf(stderr, "unable to open output file\n");
-					exit(2);
-					}
+					buff[n]='\0';
+					printf("%s",buff);
 
-					fwrite(buff, 1, n, ofd);
-
-					fclose(ofd);
-					*/
 				}
 			}
-			else { printf("No bytes from IMU available\r\n"); }
 		}
 
 
@@ -390,7 +379,7 @@ int InitPWM() {
         // Range=1920, Clock=10, f_pwm=1kHz
         // Range=1920, Clock=5, f_pwm=2kHz
         pwmRange = 1920;
-        system("gpio pwmc 5"); 
+        system("gpio pwmc 40"); 
         system("gpio pwmr 1920");
     #endif
 

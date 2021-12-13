@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,17 +46,25 @@ UART_HandleTypeDef huart5;
 USART_HandleTypeDef husart2;
 
 /* USER CODE BEGIN PV */
-uint32_t TIMEOUT_DURATION=5000;
+
 uint32_t Timeout=10000;
 SPI_HandleTypeDef hspi2;
+HAL_StatusTypeDef uart;
 HAL_StatusTypeDef status_spi;
+uint32_t TIMEOUT_DURATION=5000;
 uint8_t flag=1;
-uint16_t accel_data_x[8000]={0};
-uint16_t accel_data_y[8000]={0};
-uint16_t accel_data_z[8000]={0};
-uint8_t rxBuffer[5];
+uint8_t rxBuffer[7]={0};
 uint8_t aTxBuffer[]="hello\r\n";
 uint16_t i=0;
+uint8_t SPI_ready=1;
+int16_t accel_data_x[4096]={0};
+int16_t accel_data_y[4096]={0};
+int16_t accel_data_z[4096]={0};
+uint32_t time[4096]={0};
+static int16_t data_raw_acceleration[3];
+float acc_x;
+float acc_y;
+float acc_z;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,12 +76,18 @@ static void MX_USART2_Init(void);
 /* USER CODE BEGIN PFP */
 void lsm6dsm_init(void);
 float lsm6dsm_from_fs2g_to_mg(int16_t lsb);
+float lsm6dsm_from_fs4g_to_mg(int16_t lsb);
+float lsm6dsm_from_fs8g_to_mg(int16_t lsb);
+float lsm6dsm_from_fs16g_to_mg(int16_t lsb);
 float lsm6dsm_from_fs500dps_to_mdps(int16_t lsb);
-uint16_t lsm6dsm_read_accel(float* accel_x,float* accel_y,float* accel_z);
+uint16_t lsm6dsm_read_accel(int16_t* accel_x,int16_t* accel_y,int16_t* accel_z);
+int32_t lsm6dsm_acceleration_raw_get(int16_t *val);
 static int32_t lsm6ds3_read(void *handle, uint8_t reg, uint8_t *bufp,uint16_t len);
 static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t len);
 void whoami(void);
 static void Error_Handler_1(void);
+uint8_t isKthBitSet(int n, int k);
+uint8_t sftwRESET(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -94,7 +108,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -114,64 +129,85 @@ int main(void)
   MX_USART2_Init();
   /* USER CODE BEGIN 2 */
 	Error_Handler_1();
-	float acc_x;
-	float acc_y;
-	float acc_z;
+
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
 
 	lsm6dsm_init();
+	HAL_Delay(200);
+
 	whoami(); // check if device can be found
 
+	sftwRESET();
+	lsm6dsm_init();
+	HAL_Delay(200);
+
 	// set UART5 interrupt
-	// HAL_UART_Receive_IT(&huart5, rxBuffer, 5);
+	HAL_UART_Receive_IT(&huart5, rxBuffer, 7);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET); // Switch on LED
+	i=0;
+	uint8_t result=0;
+	uint8_t spi_hal_ok;
 
-	flag=1;
   while (1)
   {
-	  HAL_UART_Receive(&huart5, rxBuffer, 5,1000);
-//	  	  if (HAL_UART_Receive(&huart5, rxBuffer, 5,1000) != HAL_OK)
-//	  	  {
-//	  			/* Transfer error in transmission process */
-//	  			Error_Handler_1();
-//	  	  }
+	  // read continously data
+	  if(flag==1)
+	  {
+
+		  // check if new data is available
+//		  	uint8_t bufp=0x00;
+//		  	uint8_t reg=0x1e;
+//		  	lsm6ds3_read(&hspi2, reg, &bufp, 1);
+//		  	result=isKthBitSet(bufp, 1);
+		  	if(1)
+		  	{
+		  		// memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
+		  		// interrupt if PWM occurs
+		  		if(i<4096)
+		  		{
+
+		  			lsm6dsm_acceleration_raw_get(data_raw_acceleration);
+		  			acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
+		  			acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
+		  			acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
+		  			accel_data_x[i]=(int16_t)acc_x;
+		  			accel_data_y[i]=(int16_t)acc_y;
+		  			accel_data_z[i]=(int16_t)acc_z;
+		  			// time[i]=HAL_GetTick();
+		  			i++;
+		  			flag=0;
+
+		  		}
+		  		else{
+		  			i=0;
+		  		}
+
+		  	}
+	  }
+
+
+//	  lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
+
+	  if(0) // try to receive
+	  {
+		  uart=HAL_UART_Receive(&huart5, rxBuffer, 7,1000);
 
 	  HAL_Delay(500);
+	  }
 
-
-
-
-//	  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
-//	  HAL_UART_Transmit(&huart5, (uint8_t *)aTxBuffer, TXBUFFERSIZE, TIMEOUT_DURATION);
-//	  if (HAL_UART_Transmit(&huart5, (uint8_t *)aTxBuffer, TXBUFFERSIZE,TIMEOUT_DURATION) != HAL_OK)
-//	  {
-//			/* Transfer error in transmission process */
-//			Error_Handler_1();
-//	  }
-//	  HAL_Delay(500);
-//	  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
-//	  HAL_Delay(500);
-
-//	  flag=1;
-//	  if(flag==1)
-//	  {
-//		  i++;
-//		  lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
-//		  flag=0;
-//
-//		  if(i<=8000)
-//		  {// max storage is 8000 byte
-//		  accel_data_x[i]=acc_x;
-//		  accel_data_y[i]=acc_y;
-//		  accel_data_z[i]=acc_z;
-//		  }
-
-//	  }
+	  if(0) // try to transmit
+	  {
+	  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+	  HAL_UART_Transmit(&huart5, (uint8_t *)aTxBuffer, TXBUFFERSIZE, TIMEOUT_DURATION);
+	  HAL_Delay(500);
+	  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
+	  HAL_Delay(500);
+	  }
 
     /* USER CODE END WHILE */
 
@@ -198,10 +234,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -211,9 +246,9 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -363,15 +398,9 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PWMI_RAS_Pin */
   GPIO_InitStruct.Pin = PWMI_RAS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(PWMI_RAS_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PC6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(PWMI_RAS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : CS_IMU_Pin */
   GPIO_InitStruct.Pin = CS_IMU_Pin;
@@ -387,6 +416,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+uint8_t sftwRESET(void)
+{
+	uint32_t len =1;
+	uint8_t bufp;
+	uint8_t read_reg;
+	// LSM6DS3H_REG_CTRL3_C
+	// set 3-wire SPI mode
+	// set block data update
+	bufp=0b11111110;
+	uint8_t reg=LSM6DS3H_REG_CTRL3_C;
+	lsm6ds3_read(&hspi2, reg, &read_reg, len);
+	bufp&=read_reg;
+	lsm6ds3_write(&hspi2,reg, &bufp, len);
+}
+
 
 void whoami(void)
 {
@@ -410,36 +454,23 @@ void whoami(void)
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_RESET);
+{
 	// __NOP(); // used to debug the Callback
 	int size;
-	char data_s[25];
+	char data_s[256];
+	uint16_t length_data_arry=4096;
 
-	flag=0;
-	for(int j=0; j<=i;j++)
+	// for(int j=0; j<length_data_arry;j++)
+	for(int j=0; j<i;j++)
 	{
-		size = sprintf(data_s, "X: %i,Y: %i,Z :%i\r\n",accel_data_x[j],accel_data_y[j],accel_data_z[j]);
+		size=sprintf(data_s, "%05d\n",accel_data_z[j]);
 		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
+	//		size = sprintf(data_s, "X: %d,Y: %d,Z :%d\r\n",accel_data_x[j],accel_data_y[j],accel_data_z[j]);
+	//		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
 	}
-	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET);
+	i=0;
+	HAL_UART_Receive_IT(&huart5, rxBuffer, 7);
 }
-
-//	flag=0;
-//	uint8_t data_tab=0xff;
-//	uint16_t size=sizeof(accel_data_x);
-//	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_x, size, Timeout);
-//	HAL_UART_Transmit(&huart5, &data_tab, 1, Timeout);
-//
-//	size=sizeof(accel_data_y);
-//	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_y, size, Timeout);
-//	HAL_UART_Transmit(&huart5, &data_tab, 1, Timeout);
-//
-//	size=sizeof(accel_data_z);
-//	HAL_UART_Transmit(&huart5,(uint8_t *)accel_data_z, 8000, Timeout);
-
-	// check if parity bit is needed for UART!
-
-
 
 static void Error_Handler_1(void)
 {
@@ -460,48 +491,80 @@ void lsm6dsm_init(void)
 {
 	uint32_t len =1;
 	uint8_t bufp;
+	uint8_t read_reg;
 	// LSM6DS3H_REG_CTRL3_C
 	// set 3-wire SPI mode
-	bufp=0b00001100;
+	// set block data update
+	bufp=0b01001100;
 	uint8_t reg=LSM6DS3H_REG_CTRL3_C;
 	lsm6ds3_write(&hspi2,reg, &bufp, len);
 
+
 	// LSM6DS3H_REG_CTRL1_XL
 	// Values for acceleration
-	// ODR_XL set to 3.33kHz
-	// FS of accelerometer set to +- 2g
-	// BW0_XL BW set to 1.5kHz
-	bufp=0b10010000;
+	// ODR_XL set to 6.66kHz
+	// FS of accelerometer set to +- 4g
+	// BW0_XL BW set to 400Hz
+
+	bufp=0b10011000;
 	reg=LSM6DS3H_REG_CTRL1_XL;
+	lsm6ds3_read(&hspi2, reg, &read_reg, len);
+	bufp|=read_reg;
 	lsm6ds3_write(&hspi2, reg, &bufp, len);
 
-	// LSM6DS3H_REG_CTRL2_G
-	// Values for gyro
-	// ODR_XL set to 3.33kHz
-	// FS of gyro set to 500dps
-	// BW0_XL BW set to 1.5kHz
-	bufp=0b1001010;
-	reg=LSM6DS3H_REG_CTRL2_G;
-	lsm6ds3_write(&hspi2, reg, &bufp, len);
+//	// LSM6DS3H_REG_CTRL8_XL
+//	// no filter at the moment
+//	bufp=0b00000000;
+//	reg=LSM6DS3H_REG_CTRL8_XL;
+//	lsm6ds3_write(&hspi2, reg, &bufp, len);
 
-	// LSM6DS3H_REG_CTRL4_C
-	// disable I2C
-	bufp=0b00000000;
-	reg=LSM6DS3H_REG_CTRL4_C;
-	lsm6ds3_write(&hspi2, reg, &bufp, len);
-
-	// LSM6DS3H_REG_CTRL5_C
-	// round values
-	bufp=0b01100000;
-	reg=LSM6DS3H_REG_CTRL5_C;
-	lsm6ds3_write(&hspi2, reg, &bufp, len);
+//	// LSM6DS3H_REG_CTRL2_G
+//	// Values for gyro
+//	// ODR_XL set to 3.33kHz
+//	// FS of gyro set to 500dps
+//	// BW0_XL BW set to 1.5kHz
+//	bufp=0b1001010;
+//	reg=LSM6DS3H_REG_CTRL2_G;
+//	lsm6ds3_write(&hspi2, reg, &bufp, len);
+//
+//	// LSM6DS3H_REG_CTRL4_C
+//	// disable I2C
+//	bufp=0b00000000;
+//	reg=LSM6DS3H_REG_CTRL4_C;
+//	lsm6ds3_write(&hspi2, reg, &bufp, len);
+//
+//	// LSM6DS3H_REG_CTRL5_C
+//	// round values
+//	bufp=0b01100000;
+//	reg=LSM6DS3H_REG_CTRL5_C;
+//	lsm6ds3_write(&hspi2, reg, &bufp, len);
+//
+//	// LSM6DS3H_REG_CTRL5
+//	// disable FIFO
+//	reg=0x0a; //LSM6ds3h_reg_ctrl5
+//	bufp=00000000;
+//	lsm6ds3_write(&hspi2, reg, &bufp, len);
 
 }
 
 float lsm6dsm_from_fs2g_to_mg(int16_t lsb)
 {
-	//
   return ((float)lsb * 0.061f);
+}
+
+float lsm6dsm_from_fs4g_to_mg(int16_t lsb)
+{
+  return ((float)lsb * 0.122f);
+}
+
+float lsm6dsm_from_fs8g_to_mg(int16_t lsb)
+{
+  return ((float)lsb * 0.244f);
+}
+
+float lsm6dsm_from_fs16g_to_mg(int16_t lsb)
+{
+  return ((float)lsb * 0.488f);
 }
 
 float lsm6dsm_from_fs500dps_to_mdps(int16_t lsb)
@@ -509,54 +572,117 @@ float lsm6dsm_from_fs500dps_to_mdps(int16_t lsb)
   return ((float)lsb * 17.50f);
 }
 
-
-uint16_t lsm6dsm_read_accel(float* accel_x,float* accel_y,float* accel_z)
+uint8_t isKthBitSet(int n, int k)
 {
+    if (n & (1 << (k - 1)))
+        {return 1;}
+    else
+        {return 0;}
+}
+
+
+uint16_t lsm6dsm_read_accel(int16_t* accel_x,int16_t* accel_y,int16_t* accel_z)
+{
+	// STM solution begin ##################################################
+//	int16_t val[3]={0};
+//	uint8_t buff[6];
+//	  int32_t ret;
+//	  float temporary;
+//	  uint8_t reg=LSM6DS3H_REG_OUTX_L_XL;
+//	  lsm6ds3_read(&hspi2, reg, &buff[0], 6);
+//	  val[0] = (int16_t)buff[1];
+//	  val[0] = (val[0] * 256) + (int16_t)buff[0];
+//	  val[1] = (int16_t)buff[3];
+//	  val[1] = (val[1] * 256) + (int16_t)buff[2];
+//	  val[2] = (int16_t)buff[5];
+//	  val[2] = (val[2] * 256) + (int16_t)buff[4];
+//	  temporary=lsm6dsm_from_fs2g_to_mg(val[0]);
+//	  *accel_x=(int16_t)temporary;
+//	  temporary=lsm6dsm_from_fs2g_to_mg(val[1]);
+//	  *accel_y=(int16_t)temporary;
+//	  temporary=lsm6dsm_from_fs2g_to_mg(val[2]);
+//	  *accel_z=(int16_t)temporary;
+	// STM solution ends  ##################################################
+	SPI_ready=0;
 	uint32_t len=1;
 	uint8_t data_H=0x00;
 	uint8_t data_L=0x00;
 	int16_t data=0;
 	float temporary;
 
-	// read x acceleration
-	uint8_t reg=LSM6DS3H_REG_OUTX_H_XL;
-	lsm6ds3_read(&hspi2, reg, &data_H, len);
-	reg=LSM6DS3H_REG_OUTX_L_XL;
-	lsm6ds3_read(&hspi2, reg, &data_L, len);
-	data=(data_H<<8)|data_L;
-	// calc to mg
-	temporary=lsm6dsm_from_fs2g_to_mg(data);
-	// output measurement
-	*accel_x=temporary;
+	// check if new data is available
+	uint8_t bufp=0x00;
+	uint8_t reg=0x1e;
+	lsm6ds3_read(&hspi2, reg, &bufp, len);
 
-	data_H=0x00;
-	data_L=0x00;
+	if(isKthBitSet(bufp,1))
+	{
 
-	// read y acceleration
-	reg=LSM6DS3H_REG_OUTY_H_XL;
-	lsm6ds3_read(&hspi2, reg, &data_H, len);
-	reg=LSM6DS3H_REG_OUTY_L_XL;
-	lsm6ds3_read(&hspi2, reg, &data_L, len);
-	data=(data_H<<8)|data_L;
+		data_H=0x00;
+		data_L=0x00;
+		// read z acceleration
+		reg=LSM6DS3H_REG_OUTZ_H_XL;
+		lsm6ds3_read(&hspi2, reg, &data_H, len);
+		reg=LSM6DS3H_REG_OUTZ_L_XL;
+		lsm6ds3_read(&hspi2, reg, &data_L, len);
+		data=(data_H<<8)|data_L;
 
-	temporary=lsm6dsm_from_fs2g_to_mg(data);
-	*accel_y=temporary;
+		temporary=lsm6dsm_from_fs2g_to_mg(data);
+		*accel_z=temporary;
+		if(i==100)
+		{
+			// only for degugging
+		}
+		// read x acceleration
+		reg=LSM6DS3H_REG_OUTX_H_XL;
+		lsm6ds3_read(&hspi2, reg, &data_H, len);
+		reg=LSM6DS3H_REG_OUTX_L_XL;
+		lsm6ds3_read(&hspi2, reg, &data_L, len);
+		data=(data_H<<8)|data_L;
+		// calc to mg
+		temporary=lsm6dsm_from_fs2g_to_mg(data);
+		// output measurement
+		*accel_x=temporary;
 
-	data_H=0x00;
-	data_L=0x00;
+		data_H=0x00;
+		data_L=0x00;
 
-	// read z acceleration
-	reg=LSM6DS3H_REG_OUTZ_H_XL;
-	lsm6ds3_read(&hspi2, reg, &data_H, len);
-	reg=LSM6DS3H_REG_OUTZ_L_XL;
-	lsm6ds3_read(&hspi2, reg, &data_L, len);
-	data=(data_H<<8)|data_L;
+		// read y acceleration
+		reg=LSM6DS3H_REG_OUTY_H_XL;
+		lsm6ds3_read(&hspi2, reg, &data_H, len);
+		reg=LSM6DS3H_REG_OUTY_L_XL;
+		lsm6ds3_read(&hspi2, reg, &data_L, len);
+		data=(data_H<<8)|data_L;
 
-	temporary=lsm6dsm_from_fs2g_to_mg(data);
-	*accel_z=temporary;
+		temporary=lsm6dsm_from_fs2g_to_mg(data);
+		*accel_y=temporary;
 
+	}
+	else
+	{
+		*accel_x=9999;
+		*accel_y=9999;
+		*accel_z=9999;
+	}
+	SPI_ready=1;
 	return 0;
 
+}
+
+int32_t lsm6dsm_acceleration_raw_get(int16_t *val)
+{
+  uint8_t buff[6];
+  int32_t ret;
+
+  lsm6ds3_read(&hspi2, LSM6DS3H_REG_OUTX_L_XL, &buff, 6);
+  val[0] = (int16_t)buff[1];
+  val[0] = (val[0] * 256) + (int16_t)buff[0];
+  val[1] = (int16_t)buff[3];
+  val[1] = (val[1] * 256) + (int16_t)buff[2];
+  val[2] = (int16_t)buff[5];
+  val[2] = (val[2] * 256) + (int16_t)buff[4];
+
+  return ret;
 }
 
 uint16_t lsm6dsm_read_gyro(float* gyro_x,float* gyro_y,float* gyro_z)
@@ -608,7 +734,11 @@ static int32_t lsm6ds3_read(void *handle, uint8_t reg, uint8_t *bufp,uint16_t le
 	status_spi=HAL_SPI_Transmit(handle, &reg, 1, TIMEOUT_DURATION);
 	status_spi=HAL_SPI_Receive(handle, bufp, len, TIMEOUT_DURATION);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
-
+	while(status_spi!=HAL_OK)
+	{
+		// spi communication isnt finished or something failed
+		return -1;
+	}
   return 0;
 }
 
@@ -623,9 +753,29 @@ static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t le
   return 0;
 }
 
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	flag=1;
+//	memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
+//	// interrupt if PWM occurs
+//	if(i<4096)
+//	{
+//		lsm6dsm_acceleration_raw_get(data_raw_acceleration);
+//		// time[i]=HAL_GetTick(); // check PWM frequency
+//		// lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
+////		accel_data_x[i]=(int16_t)acc_x;
+////		accel_data_y[i]=(int16_t)acc_y;
+////		accel_data_z[i]=(int16_t)acc_z;
+//		acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
+//		acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
+//		acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
+//		accel_data_x[i]=(int16_t)acc_x;
+//		accel_data_y[i]=(int16_t)acc_y;
+//		accel_data_z[i]=(int16_t)acc_z;
+//		i++;
+//	}
+//	else{i=0;}
 }
 
 /* USER CODE END 4 */

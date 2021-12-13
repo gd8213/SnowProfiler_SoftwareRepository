@@ -62,8 +62,8 @@ all: main-build
 main-build: NEW_UART_IMU.elf secondary-outputs
 
 # Tool invocations
-NEW_UART_IMU.elf: $(OBJS) $(USER_OBJS) C:\Users\Felbermayr\ Simon\OneDrive\ -\ mci4me.at\01_Master\3.Semester\Project_2\SensorTile\STSW-STLKT01_V2.5.0_1\Projects\SensorTile\Applications\NEW_UART_IMU\STM32L476JGYX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "NEW_UART_IMU.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Felbermayr Simon\OneDrive - mci4me.at\01_Master\3.Semester\Project_2\SensorTile\STSW-STLKT01_V2.5.0_1\Projects\SensorTile\Applications\NEW_UART_IMU\STM32L476JGYX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NEW_UART_IMU.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+NEW_UART_IMU.elf: $(OBJS) $(USER_OBJS) C:\Users\Felbermayr\ Simon\OneDrive\ -\ mci4me.at\01_Master\3.Semester\Project_2\SnowProfiler_SoftwareRepository\StevalSensorTile\StmCubeIDE\NEW_UART_IMU\STM32L476JGYX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "NEW_UART_IMU.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Felbermayr Simon\OneDrive - mci4me.at\01_Master\3.Semester\Project_2\SnowProfiler_SoftwareRepository\StevalSensorTile\StmCubeIDE\NEW_UART_IMU\STM32L476JGYX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NEW_UART_IMU.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

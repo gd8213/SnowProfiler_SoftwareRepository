@@ -263,7 +263,7 @@ int ReadAccelVectorFromIMU() {
 	// read STM32 UART data
 	// Check if there's any data available to read
 		int i = 0;
-		while (1)
+		while (i<4096)
 		{
 			ioctl(sfd, FIONREAD, &bytes);
 			if (bytes >0 )

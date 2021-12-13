@@ -6,6 +6,12 @@
 #include <stdlib.h>         // USB cam system call
 #include <math.h>           // Sqrt
 
+#include <termios.h>		// for UART
+#include <fcntl.h>			// for UART
+#include <unistd.h>			// for UART
+#include <sys/ioctl.h>		// for UART
+#include <sys/types.h>		// for UART
+
 #include <wiringPi.h>       // GPIO -> see GPIO_Raspy.c for needed Setup
 #include <wiringPiI2C.h>    // I2C functions to read Registers -> Arduino IMU
 
@@ -15,8 +21,10 @@
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define DEBUG
-#define RASPY_4         // Remove on CM3 !!!!!!!!
+//#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#define device "/dev/serial0" // define UART port to STM32 IMU
 
 #define FORCE_SIZE 4096
 #define ARDUINO_I2C_ADDR 0x05
@@ -69,6 +77,8 @@ int recordingLength = 5;       // in sec
 
 int fd_i2c = -1;
 int fd_arduinoIMU = -1;
+
+int sfd;						// for UART STM IMU
 
 float forceVec[FORCE_SIZE] = { -1 };    // forceVec[0] => oldest value at t=0
 float accelVec[FORCE_SIZE] = { -1 };    // accelVec[0] => oldest value at t=0
@@ -170,6 +180,40 @@ int ReadForceVecFromArduino() {
 int InitIMU() {
     // ToDo initialization of IMU
     // Paste your code here Felbi
+
+	//###############################################################################
+	// start init UART to STM32
+	struct termios options;
+
+	sfd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+	if (sfd == -1)
+	{
+		fprintf(stderr, "unable to open %s\n", device);
+		exit(1);
+	}
+	else
+	{
+		fcntl(sfd, F_SETFL, FNDELAY);
+	}
+
+	tcgetattr(sfd, &options);
+
+	cfsetispeed(&options, B115200);
+	cfsetospeed(&options, B115200);
+
+	cfmakeraw(&options);
+
+	options.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
+	options.c_cflag |= (CLOCAL | CREAD | CS8);
+
+	options.c_oflag &= ~OPOST;
+	options.c_cc[VMIN] = 1;
+	options.c_cc[VTIME] = 0;
+
+	tcsetattr(sfd, TCSANOW, &options);
+	// end init UART to STM32
+	//###############################################################################
+
     return 0;
 }
 
@@ -177,6 +221,86 @@ int ReadAccelVectorFromIMU() {
     // ToDo Get Acceleration from IMU
     // Paste your code here Felbi
     // Sort Vector
+	
+	FILE *ofd;
+	int32_t n, i;
+	u_int32_t bytes;
+	u_int8_t buff[25];
+
+	// Initialize the serial port
+	// initComPort(&sfd, SERDEV);
+
+	//##########################################
+	// Write to STM32 (IMU) 
+	//----- TX BYTES -----
+	unsigned char tx_buffer[20];
+	unsigned char *p_tx_buffer;
+
+	p_tx_buffer = &tx_buffer[0];
+	*p_tx_buffer++ = 'S';
+	*p_tx_buffer++ = 't';
+	*p_tx_buffer++ = 'o';
+	*p_tx_buffer++ = 'p';
+	*p_tx_buffer++ = 'p';
+	*p_tx_buffer++ = '\r';
+	*p_tx_buffer++ = '\n';
+	//while (1)
+	//{
+		if (sfd != -1)
+		{
+			int count = write(sfd, &tx_buffer[0], 7);		//Filestream, bytes to write, number of bytes to write
+			if (count < 0)
+			{
+				printf("UART TX error\n");
+			}
+			else
+			{
+				printf("TX Bytes send: %i\n", count);
+			}
+		}
+		//sleep(1);
+	//}
+	//##########################################
+	// read STM32 UART data
+	// Check if there's any data available to read
+		while (1)
+		{
+			ioctl(sfd, FIONREAD, &bytes);
+			if (bytes > 0)
+			{
+				// printf("Bytes in Receive: %i\n", bytes);
+				// Read what we can
+				n = read(sfd, buff, 10000);
+
+				if (n < 0)
+				{
+					printf("Read failed\r\n");
+					//				fprintf(stderr, "read failed\n");
+				}
+				if (n > 0)
+				{
+					printf("Bytes read %i\r\n", n);
+					printf(buff);
+
+					// file write begin
+					/*
+					ofd = fopen("data.bin", "a");
+					if (ofd == NULL)
+					{
+					fprintf(stderr, "unable to open output file\n");
+					exit(2);
+					}
+
+					fwrite(buff, 1, n, ofd);
+
+					fclose(ofd);
+					*/
+				}
+			}
+			else { printf("No bytes from IMU available\r\n"); }
+		}
+
+
     return 0;
 }
 
@@ -390,6 +514,7 @@ int main() {
     if (wiringPiSetup() < 0)        printf("ERROR: wiringPiSetup Failed! \r\n");
     if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
     if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
+	InitIMU();						
 
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
     if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
@@ -398,19 +523,19 @@ int main() {
     printf("Start PWM for Measurement \r\n");
     if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare File name \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set Meas PWM to 50 \r\n");
-    sleep(3);
+    sleep(1);
     
     printf("Measurement Done \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
     if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
-    if (ReadAccelVectorFromIMU() < 0)                          printf("ERROR: Failed to read accel vec from IMU \r\n");
+    if (ReadAccelVectorFromIMU() < 0)                   printf("ERROR: Failed to read accel vec from IMU \r\n");
     if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
     
     printf("Start Cam Recording \r\n");
-    if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
-    if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
+    // if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
+    // if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
-    sleep(recordingLength);
+    // sleep(recordingLength);
     if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Finished cam Recording \r\n");   
 

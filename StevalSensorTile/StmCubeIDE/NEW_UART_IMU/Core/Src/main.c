@@ -108,8 +108,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -137,10 +136,6 @@ int main(void)
 
 	whoami(); // check if device can be found
 
-	sftwRESET();
-	lsm6dsm_init();
-	HAL_Delay(200);
-
 	// set UART5 interrupt
 	HAL_UART_Receive_IT(&huart5, rxBuffer, 7);
 
@@ -150,35 +145,37 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET); // Switch on LED
 	i=0;
+	uint8_t result=0;
+  	uint8_t bufp=0x00;
+  	uint8_t reg=0x1e; // register of IMU where DRDY signal can be found
 
   while (1)
   {
-	  // read continously data
-	  if(flag==1)
+	  // polling data
+	  if(flag==1) // check external interrupt
 	  {
 
-		  // check if new data is available
-//		  	uint8_t bufp=0x00;
-//		  	uint8_t reg=0x1e;
-//		  	lsm6ds3_read(&hspi2, reg, &bufp, 1);
-//		  	result=isKthBitSet(bufp, 1);
+//			check if new data is available
+//			lsm6ds3_read(&hspi2, reg, &bufp, 1);
+//			result=isKthBitSet(bufp, 1);
+
 		  	if(1)
 		  	{
-		  		// memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
 		  		// interrupt if PWM occurs
 		  		if(i<4096)
 		  		{
 
 		  			lsm6dsm_acceleration_raw_get(data_raw_acceleration);
-		  			acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
-		  			acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
+		  			// acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
+		  			// acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
 		  			acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
-		  			accel_data_x[i]=(int16_t)acc_x;
-		  			accel_data_y[i]=(int16_t)acc_y;
+		  			// accel_data_x[i]=(int16_t)acc_x;
+		  			// accel_data_y[i]=(int16_t)acc_y;
 		  			accel_data_z[i]=(int16_t)acc_z;
 		  			// time[i]=HAL_GetTick();
 		  			i++;
 		  			flag=0;
+
 		  		}
 		  		else{
 		  			i=0;
@@ -212,9 +209,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -224,9 +222,9 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -258,7 +256,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -436,13 +434,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	// __NOP(); // used to debug the Callback
 	int size;
 	char data_s[256];
-	uint16_t length_data_array=4096;
+	uint16_t length_data_arry=4096;
 
-	for(int j=0; j<length_data_array;j++)
+	// for(int j=0; j<length_data_arry;j++)
+	for(int j=0; j<i;j++)
 	{
 		size=sprintf(data_s, "%05d\n",accel_data_z[j]);
 		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
 	//		size = sprintf(data_s, "X: %d,Y: %d,Z :%d\r\n",accel_data_x[j],accel_data_y[j],accel_data_z[j]);
+	//		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
 	}
 	i=0;
 	HAL_UART_Receive_IT(&huart5, rxBuffer, 7);
@@ -471,55 +471,23 @@ void lsm6dsm_init(void)
 	// LSM6DS3H_REG_CTRL3_C
 	// set 3-wire SPI mode
 	// set block data update
-	bufp=0b01001100;
+	bufp=BDU|SIM|IF_INC; //0b01001100;
 	uint8_t reg=LSM6DS3H_REG_CTRL3_C;
 	lsm6ds3_write(&hspi2,reg, &bufp, len);
-
 
 	// LSM6DS3H_REG_CTRL1_XL
 	// Values for acceleration
 	// ODR_XL set to 6.66kHz
 	// FS of accelerometer set to +- 4g
 	// BW0_XL BW set to 400Hz
-
-	bufp=0b10011000;
+	bufp=ODR_6660Hz|FS_4g; // 0b10101000;
 	reg=LSM6DS3H_REG_CTRL1_XL;
-	lsm6ds3_read(&hspi2, reg, &read_reg, len);
-	bufp|=read_reg;
 	lsm6ds3_write(&hspi2, reg, &bufp, len);
 
-//	// LSM6DS3H_REG_CTRL8_XL
-//	// no filter at the moment
-//	bufp=0b00000000;
-//	reg=LSM6DS3H_REG_CTRL8_XL;
-//	lsm6ds3_write(&hspi2, reg, &bufp, len);
-
-//	// LSM6DS3H_REG_CTRL2_G
-//	// Values for gyro
-//	// ODR_XL set to 3.33kHz
-//	// FS of gyro set to 500dps
-//	// BW0_XL BW set to 1.5kHz
-//	bufp=0b1001010;
-//	reg=LSM6DS3H_REG_CTRL2_G;
-//	lsm6ds3_write(&hspi2, reg, &bufp, len);
-//
-//	// LSM6DS3H_REG_CTRL4_C
-//	// disable I2C
-//	bufp=0b00000000;
-//	reg=LSM6DS3H_REG_CTRL4_C;
-//	lsm6ds3_write(&hspi2, reg, &bufp, len);
-//
-//	// LSM6DS3H_REG_CTRL5_C
-//	// round values
-//	bufp=0b01100000;
-//	reg=LSM6DS3H_REG_CTRL5_C;
-//	lsm6ds3_write(&hspi2, reg, &bufp, len);
-//
-//	// LSM6DS3H_REG_CTRL5
-//	// disable FIFO
-//	reg=0x0a; //LSM6ds3h_reg_ctrl5
-//	bufp=00000000;
-//	lsm6ds3_write(&hspi2, reg, &bufp, len);
+	// disable latched mode
+	bufp=DRDY_LATCHED;
+	reg=LSM6DS3H_REG_DRDY_PULSE_CFG;
+	lsm6ds3_write(&hspi2, reg, &bufp, len);
 
 }
 
@@ -559,6 +527,26 @@ uint8_t isKthBitSet(int n, int k)
 
 uint16_t lsm6dsm_read_accel(int16_t* accel_x,int16_t* accel_y,int16_t* accel_z)
 {
+	// STM solution begin ##################################################
+//	int16_t val[3]={0};
+//	uint8_t buff[6];
+//	  int32_t ret;
+//	  float temporary;
+//	  uint8_t reg=LSM6DS3H_REG_OUTX_L_XL;
+//	  lsm6ds3_read(&hspi2, reg, &buff[0], 6);
+//	  val[0] = (int16_t)buff[1];
+//	  val[0] = (val[0] * 256) + (int16_t)buff[0];
+//	  val[1] = (int16_t)buff[3];
+//	  val[1] = (val[1] * 256) + (int16_t)buff[2];
+//	  val[2] = (int16_t)buff[5];
+//	  val[2] = (val[2] * 256) + (int16_t)buff[4];
+//	  temporary=lsm6dsm_from_fs2g_to_mg(val[0]);
+//	  *accel_x=(int16_t)temporary;
+//	  temporary=lsm6dsm_from_fs2g_to_mg(val[1]);
+//	  *accel_y=(int16_t)temporary;
+//	  temporary=lsm6dsm_from_fs2g_to_mg(val[2]);
+//	  *accel_z=(int16_t)temporary;
+	// STM solution ends  ##################################################
 	SPI_ready=0;
 	uint32_t len=1;
 	uint8_t data_H=0x00;
@@ -713,6 +701,25 @@ static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t le
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	flag=1;
+//	memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
+//	// interrupt if PWM occurs
+//	if(i<4096)
+//	{
+//		lsm6dsm_acceleration_raw_get(data_raw_acceleration);
+//		// time[i]=HAL_GetTick(); // check PWM frequency
+//		// lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
+////		accel_data_x[i]=(int16_t)acc_x;
+////		accel_data_y[i]=(int16_t)acc_y;
+////		accel_data_z[i]=(int16_t)acc_z;
+//		acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
+//		acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
+//		acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
+//		accel_data_x[i]=(int16_t)acc_x;
+//		accel_data_y[i]=(int16_t)acc_y;
+//		accel_data_z[i]=(int16_t)acc_z;
+//		i++;
+//	}
+//	else{i=0;}
 }
 
 /* USER CODE END 4 */

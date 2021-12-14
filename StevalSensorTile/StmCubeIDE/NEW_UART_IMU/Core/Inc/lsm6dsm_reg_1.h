@@ -156,5 +156,49 @@ typedef enum {
 		// =0x76-=0x7f reserved6
 } LSM6DS3H_REGS_T;
 
+typedef enum {
+	BOOT 		= 0x80,
+	BDU  		= 0x40,
+	H_LACTIVE 	= 0x20,
+	PP_OD		= 0x10,
+	SIM			= 0x08,
+	IF_INC		= 0x04,
+	BLE			= 0x02,
+	SW_RESET	= 0x01
+}CTRL3_C_REG;
+
+typedef enum {
+	ODR_XL_3 		= 0x80,
+	ODR_XL_2  		= 0x40,
+	ODR_XL_1 		= 0x20,
+	ODR_XL_0		= 0x10,
+	FS_XL_1			= 0x08,
+	FS_XL_0			= 0x04,
+	LPF1_BW_SEL		= 0x02,
+	BW0_XL			= 0x01
+}CTRL1_XL;
+
+typedef enum {
+	ODR_6660Hz 		= 0xa0,
+	ODR_3330Hz  	= 0x90,
+	ODR_1660Hz 		= 0x80,
+	ODR_833Hz		= 0x70,
+}ODR_ACCEL;
+
+typedef enum {
+	FS_2g 		= 0x00,
+	FS_4g  		= 0x08,
+	FS_16g 		= 0x04,
+	FS_8g		= 0x0c,
+}FS_ACCEL;
+
+typedef enum {
+	DRDY_PULSE		= 0x80,
+	DRDY_LATCHED	= 0x00,
+}DRDY_PULSE_CFG;
+
+
+
+
 
 #endif /* INC_LSM6DSM_REG_H_ */

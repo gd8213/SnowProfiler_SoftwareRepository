@@ -37,13 +37,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  16 .debug_macro  000262e1  00000000  00000000  00034ec8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0000efcd  00000000  00000000  0005b1a9  2**0
+ 17 .debug_line   0000efc9  00000000  00000000  0005b1a9  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000ef22e  00000000  00000000  0006a176  2**0
+ 18 .debug_str    000ef22e  00000000  00000000  0006a172  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000053  00000000  00000000  001593a4  2**0
+ 19 .comment      00000053  00000000  00000000  001593a0  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00003c78  00000000  00000000  001593f8  2**2
+ 20 .debug_frame  00003c78  00000000  00000000  001593f4  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1688,11 +1688,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
  8000d7e:	4b04      	ldr	r3, [pc, #16]	; (8000d90 <HAL_GPIO_EXTI_Callback+0x1c>)
  8000d80:	2201      	movs	r2, #1
  8000d82:	701a      	strb	r2, [r3, #0]
-//		accel_data_y[i]=(int16_t)acc_y;
-//		accel_data_z[i]=(int16_t)acc_z;
-//		i++;
-//	}
-//	else{i=0;}
 }
  8000d84:	bf00      	nop
  8000d86:	370c      	adds	r7, #12

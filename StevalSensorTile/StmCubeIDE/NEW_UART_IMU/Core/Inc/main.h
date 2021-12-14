@@ -55,6 +55,11 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 LSM6DS3H_REGS_T REG;
+CTRL3_C_REG CTRL3_C_REG_def;
+CTRL1_XL CTRL1_XL_def;
+ODR_ACCEL ODR_ACCEL_def;
+FS_ACCEL FS_ACCEL_def;
+DRDY_PULSE_CFG	DRDY_PULSE_CFG_def;
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

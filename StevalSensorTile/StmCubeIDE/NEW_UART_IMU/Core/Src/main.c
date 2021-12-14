@@ -152,26 +152,25 @@ int main(void)
   while (1)
   {
 	  // polling data
-	  if(1) // flag
+	  if(flag==1) // check external interrupt
 	  {
 
-		  // check if new data is available
-		  	lsm6ds3_read(&hspi2, reg, &bufp, 1);
-		  	result=isKthBitSet(bufp, 1);
+//			check if new data is available
+//			lsm6ds3_read(&hspi2, reg, &bufp, 1);
+//			result=isKthBitSet(bufp, 1);
 
-		  	if(result)
+		  	if(1)
 		  	{
-		  		// memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
 		  		// interrupt if PWM occurs
 		  		if(i<4096)
 		  		{
 
 		  			lsm6dsm_acceleration_raw_get(data_raw_acceleration);
-		  			acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
-		  			acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
+		  			// acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
+		  			// acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
 		  			acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
-		  			accel_data_x[i]=(int16_t)acc_x;
-		  			accel_data_y[i]=(int16_t)acc_y;
+		  			// accel_data_x[i]=(int16_t)acc_x;
+		  			// accel_data_y[i]=(int16_t)acc_y;
 		  			accel_data_z[i]=(int16_t)acc_z;
 		  			// time[i]=HAL_GetTick();
 		  			i++;

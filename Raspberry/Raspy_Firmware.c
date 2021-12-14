@@ -506,7 +506,7 @@ int main() {
     if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
 
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
-    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+   // if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Raspy Initialization is done \r\n ");
     
     printf("Start PWM for Measurement \r\n");
@@ -517,7 +517,7 @@ int main() {
     
     printf("Measurement Done \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
-    if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
+   // if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
     if (ReadAccelVectorFromIMU() < 0)                   printf("ERROR: Failed to read accel vec from IMU \r\n");
     if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
     
@@ -526,7 +526,7 @@ int main() {
     // if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
     // sleep(recordingLength);
-    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+ //   if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Finished cam Recording \r\n");   
 
 

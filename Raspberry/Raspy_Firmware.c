@@ -503,29 +503,30 @@ int main() {
     if (wiringPiSetup() < 0)        printf("ERROR: wiringPiSetup Failed! \r\n");
     if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
     if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
-	InitIMU();						
+    if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
 
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
-    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+   // if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Raspy Initialization is done \r\n ");
     
     printf("Start PWM for Measurement \r\n");
     if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare File name \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set Meas PWM to 50 \r\n");
-    sleep(1);
+
+    sleep(2);       // Measurements
     
     printf("Measurement Done \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
-    if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
+   // if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
     if (ReadAccelVectorFromIMU() < 0)                   printf("ERROR: Failed to read accel vec from IMU \r\n");
     if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
     
-    printf("Start Cam Recording \r\n");
+    // printf("Start Cam Recording \r\n");
     // if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
     // if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
     // sleep(recordingLength);
-    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+ //   if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Finished cam Recording \r\n");   
 
 
@@ -538,15 +539,15 @@ int freefallDelay = 100;        // in ms
         case probeInit:  
             printf("Raspy Firmware is starting up... \r\n");  
             printf("--- State Init. \r\n");
-            int res = wiringPiSetup();
-            if (res < 0){ 
-                printf("ERROR: GPIO init failed.");
-            } 
-            OpenI2C();
-            InitPWM();
-	    InitIMU();
-            SetDutyCyclePWM(PWM_PIN_IR, 50);        // PWM for IR-LED
-            SetDutyCyclePWM(PWM_PIN_MEAS, 0);
+            printf("Initialize Functions... \r\n");
+            if (wiringPiSetup() < 0)        printf("ERROR: wiringPiSetup Failed! \r\n");
+            if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
+            if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
+            if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
+
+            printf("Set PWM signals... \r\n");
+            if (SetDutyCyclePWM(PWM_PIN_IR, 50) < 0)            printf("ERROR: Failed to set IR PWM to 50 \r\n");    // PWM for IR-LED
+            if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set measurement PWM to 0 \r\n");
             state = probeMoving;
             break;
 
@@ -554,14 +555,17 @@ int freefallDelay = 100;        // in ms
             printf("--- State Probe Moving to Location. \r\n");
             state = probeMoving;
             float accel = ReadAccelFromArduino();
-            if (accel >= 0 && accel <= 0.2){
+            if (accel >= -0.2 && accel <= 0.2){
+                printf("First freefall event detected... \r\n");
                 delay(freefallDelay);
                 accel = ReadAccelFromArduino();
-                if (accel >= 0 && accel <= 0.2) {
+                if (accel >= -0.2 && accel <= 0.2) {
+                    printf("Second freefall event detected... \r\n");
                     delay(freefallDelay);
                     accel = ReadAccelFromArduino();
-                    if (accel >= 0 && accel <= 0.2) {
+                    if (accel >= -0.2 && accel <= 0.2) {
                         // Freefall detected
+                        printf("FREEFALL confirmed... \r\n");
                         state = freeFall;
                     } 
                 } 
@@ -570,23 +574,27 @@ int freefallDelay = 100;        // in ms
 
         case freeFall:      
             printf("--- State Free Fall. \r\n");
-            PrepareDataFileName();
-            SetDutyCyclePWM(PWM_PIN_MEAS, 50);        // PWM for Measurement
+            printf("Set Measurement PWM... \r\n");
+            if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare data file name \r\n");
+            if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set measurement PWM to 50 \r\n");      // PWM for Measurement
             state = deceleration;
             break;
 
         case deceleration:  
-            printf("--- State Hit Surface. Deceleration of Probe. \r\n");
+            printf("--- State deceleration. Probe is moving vertically... \r\n");
             state = deceleration;
             float accel = ReadAccelFromArduino();
             if (accel >= 0.95 && accel <= 1.05){
+                printf("First deceleration event detected... \r\n");
                 delay(freefallDelay);
                 accel = ReadAccelFromArduino();
                 if (accel >= 0.95 && accel <= 1.05){
+                    printf("Second deceleration event detected... \r\n");
                     delay(freefallDelay);
                     accel = ReadAccelFromArduino();
                     if (accel >= 0.95 && accel <= 1.05){
                         // Stop detected
+                        printf("STOP confirmed... \r\n");
                         state = stop;
                     }
                 }  
@@ -595,25 +603,27 @@ int freefallDelay = 100;        // in ms
 
         case stop:          
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
-            SetDutyCyclePWM(PWM_PIN_MEAS, 0);
+            printf("Disable Measurement PWM...")
+            if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)       printf("ERROR: Failed to set measurement PWM to 0 \r\n");
 
+            state = stop;
             float accel = ReadAccelFromArduino();
             if (accel <= 0.95|| accel >= 1.05){
                 // Started moving upwards
                 state = probeRecovery;
-            } else { 
-                // Still stop
-                state = stop;
-            }  
+            } 
             break;
 
         case probeRecovery: 
             printf("--- State recovering Probe. \r\n");
-            StartCamRecording();
-            ReadForceVecFromArduino();
-            ReadAccelVectorFromIMU();
-            SaveDataToCSV();
+            printf("Start Cam recording... \r\n");
+            if (StartCamRecording() < 0)                        printf("ERRRO: Failed to start Cam recording \r\n");
+            printf("Read measurement data... \r\n");
+            if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
+            if (ReadAccelVectorFromIMU() < 0)                   printf("ERROR: Failed to read accel vec from IMU \r\n");
+            if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
             sleep(recordingLength);      // Wait until recording is over
+            printf("Finished gathering data and recording \r\n");
             state = probeMoving;            
             break;
         default:       state = probeInit;     break;
@@ -622,7 +632,7 @@ int freefallDelay = 100;        // in ms
 
 
 
-    printf("It is getting dark... \r\n");
+    printf("My batteries are low and it's getting dark... \r\n");
     return 0;
 }
 

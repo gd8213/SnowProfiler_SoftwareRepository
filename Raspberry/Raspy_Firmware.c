@@ -378,8 +378,9 @@ int InitPWM() {
         // f_pwm = 19200000 / Clock / Range
         // Range=1920, Clock=10, f_pwm=1kHz
         // Range=1920, Clock=5, f_pwm=2kHz
+        // Range=1920, Clock=40, f_pwm=250Hz
         pwmRange = 1920;
-        system("gpio pwmc 40"); 
+        system("gpio pwmc 5"); 
         system("gpio pwmr 1920");
     #endif
 

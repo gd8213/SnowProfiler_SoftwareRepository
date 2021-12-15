@@ -226,8 +226,10 @@ int ReadAccelVectorFromIMU() {
 	
 	FILE *ofd;
 	int32_t n, i;
+	u_int8_t k = 0;
 	u_int32_t bytes;
 	u_int8_t buff[256];
+	int accelTemp;
 
 	// Initialize the serial port
 	// initComPort(&sfd, SERDEV);
@@ -235,7 +237,7 @@ int ReadAccelVectorFromIMU() {
 	//##########################################
 	// Write to STM32 (IMU) 
 	//----- TX BYTES -----
-	unsigned char tx_buffer[20];
+	unsigned char tx_buffer[20];,
 	unsigned char *p_tx_buffer;
 
 	p_tx_buffer = &tx_buffer[0];
@@ -279,9 +281,17 @@ int ReadAccelVectorFromIMU() {
 				{
 					// Convert Buffer to float.
 					// values are received in mg
+					if (k <= 6) 
+					{ 
+						accelTemp[k] = buff; 
+						k++; 
+					}
+					else 
+					{ 
+						accelVec[i] = atof(accelTemp);
+						k = 0;
+					} 
 
-
-					accelVec[i] = atof(buff);
 					i++;
 
 					buff[n]='\0';

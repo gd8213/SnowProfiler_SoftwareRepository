@@ -295,7 +295,7 @@ int ReadAccelVectorFromIMU() {
 					i++;
 
 					buff[n]='\0';
-					printf("%s, AccelVec: %f\r\n",buff,acelVec[i]);
+					printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
 
 				}
 			}

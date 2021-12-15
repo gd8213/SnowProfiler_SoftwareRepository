@@ -266,7 +266,7 @@ int ReadAccelVectorFromIMU() {
 	// ##########################################
 	// read STM32 UART data
 	// Check if there's any data available to read
-		while (i<sizeofRxData)
+		while (i<4096)
 		{
 			ioctl(sfd, FIONREAD, &bytes);
 			if (bytes >0 )
@@ -285,18 +285,10 @@ int ReadAccelVectorFromIMU() {
 
 
 					buff[n]='\0';
+					accelVec[i] = atof(buff);
 					printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
 
-					if (buff[n-1]!='\n')
-					{
-						accelTemp[k] = buff;
-						k++;
-					}
-					else
-					{
-						accelVec[i] = atof(accelTemp);
-						k = 0;
-					}
+					
 
 					i++;
 

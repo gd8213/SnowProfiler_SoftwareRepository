@@ -229,7 +229,8 @@ int ReadAccelVectorFromIMU() {
 	u_int8_t k = 0;
 	u_int32_t bytes;
 	u_int8_t buff[256];
-	unsigned char accelTemp[7];
+	u_int8_t accelTemp[7];
+	int sizeofRxData = 24576; // 4096 * 6;
 
 	// Initialize the serial port
 	// initComPort(&sfd, SERDEV);
@@ -262,10 +263,10 @@ int ReadAccelVectorFromIMU() {
 			}
 		}
 
-	//##########################################
+	// ##########################################
 	// read STM32 UART data
 	// Check if there's any data available to read
-		while (i<4096)
+		while (i<sizeofRxData)
 		{
 			ioctl(sfd, FIONREAD, &bytes);
 			if (bytes >0 )
@@ -281,21 +282,23 @@ int ReadAccelVectorFromIMU() {
 				{
 					// Convert Buffer to float.
 					// values are received in mg
-					if (k <= 6) 
-					{ 
-						accelTemp[k] = buff; 
-						k++; 
-					}
-					else 
-					{ 
-						accelVec[i] = atof(accelTemp);
-						k = 0;
-					} 
 
-					i++;
 
 					buff[n]='\0';
 					printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
+
+					if (buff[n-1]!='\n')
+					{
+						accelTemp[k] = buff;
+						k++;
+					}
+					else
+					{
+						accelVec[i] = atof(accelTemp);
+						k = 0;
+					}
+
+					i++;
 
 				}
 			}

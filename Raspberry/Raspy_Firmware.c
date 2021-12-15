@@ -229,7 +229,7 @@ int ReadAccelVectorFromIMU() {
 	u_int8_t k = 0;
 	u_int32_t bytes;
 	u_int8_t buff[256];
-	int accelTemp;
+	char accelTemp[7];
 
 	// Initialize the serial port
 	// initComPort(&sfd, SERDEV);

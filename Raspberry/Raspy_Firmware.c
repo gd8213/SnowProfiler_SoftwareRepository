@@ -237,7 +237,7 @@ int ReadAccelVectorFromIMU() {
 	//##########################################
 	// Write to STM32 (IMU) 
 	//----- TX BYTES -----
-	unsigned char tx_buffer[20];,
+	unsigned char tx_buffer[20];
 	unsigned char *p_tx_buffer;
 
 	p_tx_buffer = &tx_buffer[0];

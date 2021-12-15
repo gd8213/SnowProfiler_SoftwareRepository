@@ -37,13 +37,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  16 .debug_macro  000262e1  00000000  00000000  000353d0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0000efaa  00000000  00000000  0005b6b1  2**0
+ 17 .debug_line   0000efa7  00000000  00000000  0005b6b1  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000ef35f  00000000  00000000  0006a65b  2**0
+ 18 .debug_str    000ef360  00000000  00000000  0006a658  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000053  00000000  00000000  001599ba  2**0
+ 19 .comment      00000053  00000000  00000000  001599b8  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00003c7c  00000000  00000000  00159a10  2**2
+ 20 .debug_frame  00003c7c  00000000  00000000  00159a0c  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1029,7 +1029,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = PWMI_RAS_Pin;
  80008e0:	f44f 7380 	mov.w	r3, #256	; 0x100
  80008e4:	617b      	str	r3, [r7, #20]
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
  80008e6:	4b15      	ldr	r3, [pc, #84]	; (800093c <MX_GPIO_Init+0x124>)
  80008e8:	61bb      	str	r3, [r7, #24]
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -1078,7 +1078,7 @@ static void MX_GPIO_Init(void)
  8000930:	40021000 	.word	0x40021000
  8000934:	48001800 	.word	0x48001800
  8000938:	48000400 	.word	0x48000400
- 800093c:	10110000 	.word	0x10110000
+ 800093c:	10310000 	.word	0x10310000
 
 08000940 <whoami>:
 	lsm6ds3_write(&hspi2,reg, &bufp, len);
@@ -1150,12 +1150,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	// __NOP(); // used to debug the Callback
 	int size;
 	char data_s[256];
-	uint16_t length_data_arry=4096;
+	uint16_t length_data_array=4096;
  800098e:	f44f 5380 	mov.w	r3, #4096	; 0x1000
  8000992:	f8a7 3112 	strh.w	r3, [r7, #274]	; 0x112
 
-	// for(int j=0; j<length_data_arry;j++)
-	for(int j=0; j<i;j++)
+	for(int j=0; j<length_data_array;j++)
  8000996:	2300      	movs	r3, #0
  8000998:	f8c7 3114 	str.w	r3, [r7, #276]	; 0x114
  800099c:	e01c      	b.n	80009d8 <HAL_UART_RxCpltCallback+0x54>
@@ -1178,33 +1177,30 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  80009c4:	f107 010c 	add.w	r1, r7, #12
  80009c8:	4810      	ldr	r0, [pc, #64]	; (8000a0c <HAL_UART_RxCpltCallback+0x88>)
  80009ca:	f003 fa1d 	bl	8003e08 <HAL_UART_Transmit>
-	for(int j=0; j<i;j++)
+	for(int j=0; j<length_data_array;j++)
  80009ce:	f8d7 3114 	ldr.w	r3, [r7, #276]	; 0x114
  80009d2:	3301      	adds	r3, #1
  80009d4:	f8c7 3114 	str.w	r3, [r7, #276]	; 0x114
- 80009d8:	4b0d      	ldr	r3, [pc, #52]	; (8000a10 <HAL_UART_RxCpltCallback+0x8c>)
- 80009da:	881b      	ldrh	r3, [r3, #0]
- 80009dc:	461a      	mov	r2, r3
- 80009de:	f8d7 3114 	ldr.w	r3, [r7, #276]	; 0x114
- 80009e2:	4293      	cmp	r3, r2
- 80009e4:	dbdb      	blt.n	800099e <HAL_UART_RxCpltCallback+0x1a>
-	//		size = sprintf(data_s, "X: %d,Y: %d,Z :%d\r\n",accel_data_x[j],accel_data_y[j],accel_data_z[j]);
-	//		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
+ 80009d8:	f8b7 3112 	ldrh.w	r3, [r7, #274]	; 0x112
+ 80009dc:	f8d7 2114 	ldr.w	r2, [r7, #276]	; 0x114
+ 80009e0:	429a      	cmp	r2, r3
+ 80009e2:	dbdc      	blt.n	800099e <HAL_UART_RxCpltCallback+0x1a>
 	}
 	i=0;
- 80009e6:	4b0a      	ldr	r3, [pc, #40]	; (8000a10 <HAL_UART_RxCpltCallback+0x8c>)
- 80009e8:	2200      	movs	r2, #0
- 80009ea:	801a      	strh	r2, [r3, #0]
+ 80009e4:	4b0a      	ldr	r3, [pc, #40]	; (8000a10 <HAL_UART_RxCpltCallback+0x8c>)
+ 80009e6:	2200      	movs	r2, #0
+ 80009e8:	801a      	strh	r2, [r3, #0]
 	HAL_UART_Receive_IT(&huart5, rxBuffer, 7);
- 80009ec:	2207      	movs	r2, #7
- 80009ee:	4909      	ldr	r1, [pc, #36]	; (8000a14 <HAL_UART_RxCpltCallback+0x90>)
- 80009f0:	4806      	ldr	r0, [pc, #24]	; (8000a0c <HAL_UART_RxCpltCallback+0x88>)
- 80009f2:	f003 fa9d 	bl	8003f30 <HAL_UART_Receive_IT>
+ 80009ea:	2207      	movs	r2, #7
+ 80009ec:	4909      	ldr	r1, [pc, #36]	; (8000a14 <HAL_UART_RxCpltCallback+0x90>)
+ 80009ee:	4807      	ldr	r0, [pc, #28]	; (8000a0c <HAL_UART_RxCpltCallback+0x88>)
+ 80009f0:	f003 fa9e 	bl	8003f30 <HAL_UART_Receive_IT>
 }
- 80009f6:	bf00      	nop
- 80009f8:	f507 778c 	add.w	r7, r7, #280	; 0x118
- 80009fc:	46bd      	mov	sp, r7
- 80009fe:	bd80      	pop	{r7, pc}
+ 80009f4:	bf00      	nop
+ 80009f6:	f507 778c 	add.w	r7, r7, #280	; 0x118
+ 80009fa:	46bd      	mov	sp, r7
+ 80009fc:	bd80      	pop	{r7, pc}
+ 80009fe:	bf00      	nop
  8000a00:	200000a4 	.word	0x200000a4
  8000a04:	08005c7c 	.word	0x08005c7c
  8000a08:	20000000 	.word	0x20000000
@@ -1607,11 +1603,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
  8000cbe:	4b04      	ldr	r3, [pc, #16]	; (8000cd0 <HAL_GPIO_EXTI_Callback+0x1c>)
  8000cc0:	2201      	movs	r2, #1
  8000cc2:	701a      	strb	r2, [r3, #0]
-//		accel_data_y[i]=(int16_t)acc_y;
-//		accel_data_z[i]=(int16_t)acc_z;
-//		i++;
-//	}
-//	else{i=0;}
 }
  8000cc4:	bf00      	nop
  8000cc6:	370c      	adds	r7, #12

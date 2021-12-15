@@ -374,7 +374,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PWMI_RAS_Pin */
   GPIO_InitStruct.Pin = PWMI_RAS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(PWMI_RAS_GPIO_Port, &GPIO_InitStruct);
 
@@ -434,15 +434,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	// __NOP(); // used to debug the Callback
 	int size;
 	char data_s[256];
-	uint16_t length_data_arry=4096;
+	uint16_t length_data_array=4096;
 
-	// for(int j=0; j<length_data_arry;j++)
-	for(int j=0; j<i;j++)
+	for(int j=0; j<length_data_array;j++)
 	{
 		size=sprintf(data_s, "%05d\n",accel_data_z[j]);
 		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
-	//		size = sprintf(data_s, "X: %d,Y: %d,Z :%d\r\n",accel_data_x[j],accel_data_y[j],accel_data_z[j]);
-	//		HAL_UART_Transmit(&huart5,(uint8_t *)data_s, size, Timeout);
 	}
 	i=0;
 	HAL_UART_Receive_IT(&huart5, rxBuffer, 7);
@@ -527,26 +524,6 @@ uint8_t isKthBitSet(int n, int k)
 
 uint16_t lsm6dsm_read_accel(int16_t* accel_x,int16_t* accel_y,int16_t* accel_z)
 {
-	// STM solution begin ##################################################
-//	int16_t val[3]={0};
-//	uint8_t buff[6];
-//	  int32_t ret;
-//	  float temporary;
-//	  uint8_t reg=LSM6DS3H_REG_OUTX_L_XL;
-//	  lsm6ds3_read(&hspi2, reg, &buff[0], 6);
-//	  val[0] = (int16_t)buff[1];
-//	  val[0] = (val[0] * 256) + (int16_t)buff[0];
-//	  val[1] = (int16_t)buff[3];
-//	  val[1] = (val[1] * 256) + (int16_t)buff[2];
-//	  val[2] = (int16_t)buff[5];
-//	  val[2] = (val[2] * 256) + (int16_t)buff[4];
-//	  temporary=lsm6dsm_from_fs2g_to_mg(val[0]);
-//	  *accel_x=(int16_t)temporary;
-//	  temporary=lsm6dsm_from_fs2g_to_mg(val[1]);
-//	  *accel_y=(int16_t)temporary;
-//	  temporary=lsm6dsm_from_fs2g_to_mg(val[2]);
-//	  *accel_z=(int16_t)temporary;
-	// STM solution ends  ##################################################
 	SPI_ready=0;
 	uint32_t len=1;
 	uint8_t data_H=0x00;
@@ -701,25 +678,6 @@ static int32_t lsm6ds3_write(void *handle, uint8_t reg,uint8_t *bufp,uint16_t le
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	flag=1;
-//	memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
-//	// interrupt if PWM occurs
-//	if(i<4096)
-//	{
-//		lsm6dsm_acceleration_raw_get(data_raw_acceleration);
-//		// time[i]=HAL_GetTick(); // check PWM frequency
-//		// lsm6dsm_read_accel(&acc_x,&acc_y,&acc_z);
-////		accel_data_x[i]=(int16_t)acc_x;
-////		accel_data_y[i]=(int16_t)acc_y;
-////		accel_data_z[i]=(int16_t)acc_z;
-//		acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
-//		acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
-//		acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
-//		accel_data_x[i]=(int16_t)acc_x;
-//		accel_data_y[i]=(int16_t)acc_y;
-//		accel_data_z[i]=(int16_t)acc_z;
-//		i++;
-//	}
-//	else{i=0;}
 }
 
 /* USER CODE END 4 */

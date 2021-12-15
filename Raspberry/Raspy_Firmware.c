@@ -27,6 +27,7 @@
 #define device "/dev/ttyS0" // define UART port to STM32 IMU
 
 #define FORCE_SIZE 4096
+#define SAMPLING_FREQUENCY 4000.0
 #define ARDUINO_I2C_ADDR 0x05
 
 #ifdef RASPY_4      // Domes private Raspy 4
@@ -278,11 +279,13 @@ int ReadAccelVectorFromIMU() {
 				{
 					// Convert Buffer to float.
 					// values are received in mg
+
+
 					accelVec[i] = atof(buff);
 					i++;
 
 					buff[n]='\0';
-					printf("%s",buff);
+					printf("%s, AccelVec: %f\r\n",buff,acelVec[i]);
 
 				}
 			}
@@ -386,7 +389,7 @@ int InitPWM() {
 
     // Prepare Time vector with theoretical values
     for (int i = 0; i < FORCE_SIZE; i++) {
-        timeVec[i] = (float) 1.0/2000.0*i; 
+        timeVec[i] = (float) 1.0/ SAMPLING_FREQUENCY *i;
     } 
 
     return 0;
@@ -430,7 +433,7 @@ int SaveDataToCSV() {
         return -1;
     } 
 
-    fprintf(filePtr, "Time[s],Acceleration [m/s2],Force [N]  \r\n");
+    fprintf(filePtr, "Time[s],Acceleration [mg],Force [N]  \r\n");
     for(int i = 0; i < FORCE_SIZE; i++) { 
         fprintf(filePtr, "%.4f,%.3f,%.3f \r\n", timeVec[i], accelVec[i], forceVec[i]);
     } 

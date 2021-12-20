@@ -1029,7 +1029,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = PWMI_RAS_Pin;
  80008e0:	f44f 7380 	mov.w	r3, #256	; 0x100
  80008e4:	617b      	str	r3, [r7, #20]
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
  80008e6:	4b15      	ldr	r3, [pc, #84]	; (800093c <MX_GPIO_Init+0x124>)
  80008e8:	61bb      	str	r3, [r7, #24]
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -1078,7 +1078,7 @@ static void MX_GPIO_Init(void)
  8000930:	40021000 	.word	0x40021000
  8000934:	48001800 	.word	0x48001800
  8000938:	48000400 	.word	0x48000400
- 800093c:	10310000 	.word	0x10310000
+ 800093c:	10110000 	.word	0x10110000
 
 08000940 <whoami>:
 	lsm6ds3_write(&hspi2,reg, &bufp, len);

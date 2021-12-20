@@ -142,11 +142,11 @@ float ReadForceSensor() {
 
 float GetForceFromMeasurement(int rawValue) {
   // Voltage from 0-3.3V will map to 0-1023 (10Bit resolution). ATTENTION connect only 3.3V
-  //float maxVoltage = 3.3;
+  float maxVoltage = 3.3;
 
-  //float voltage = (float) rawValue * maxVoltage / 1023;
-  //float force = maxForceRange * voltage / maxVoltage;
-  float force = maxForceRange * (float) rawValue / 1023.0;
+  float voltage = (float) rawValue * maxVoltage / 1023;
+  float force = maxForceRange * voltage / maxVoltage;
+  //float force = maxForceRange * (float) rawValue / 1023.0;
   return force;
 }
 
@@ -207,7 +207,3 @@ void GetLightFromRaspy(int howMany) {
 
     analogWrite(analogCamLightPin, value);    // analogWrite: 0.255
 }
-
-
-
-

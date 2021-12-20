@@ -170,6 +170,7 @@ int ReadForceVecFromArduino() {
         if (startIndex >= FORCE_SIZE) {
             startIndex = 0;
         } 
+	printf("forceVec: %f, tempVec: %f",forceVec[i],tempVec[startIndex]);
 
         forceVec[i] = tempVec[startIndex];
         startIndex++;  
@@ -225,7 +226,7 @@ int ReadAccelVectorFromIMU() {
     // Sort Vector
 	
 	FILE *ofd;
-	int32_t n, i;
+	int32_t n, i=0;
 	u_int8_t k = 0;
 	u_int32_t bytes;
 	u_int8_t buff[256];
@@ -269,7 +270,7 @@ int ReadAccelVectorFromIMU() {
 		while (i<4096)
 		{
 			ioctl(sfd, FIONREAD, &bytes);
-			if (bytes >0 )
+			if (bytes>=6 )
 			{
 				// Read what we can
 				n = read(sfd, buff, 6);
@@ -286,7 +287,7 @@ int ReadAccelVectorFromIMU() {
 
 					buff[n]='\0';
 					accelVec[i] = atof(buff);
-					printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
+					// printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
 
 					
 
@@ -544,6 +545,9 @@ int main() {
 
  #else
 int freefallDelay = 100;        // in ms
+float accel;
+while(1)
+{
     switch (state) {
         case probeInit:  
             printf("Raspy Firmware is starting up... \r\n");  
@@ -553,6 +557,7 @@ int freefallDelay = 100;        // in ms
             if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
             if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
             if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
+	    if (InitArduinoIMU() <0)        printf("ERROR: Arduino IMU failed\r\n");
 
             printf("Set PWM signals... \r\n");
             if (SetDutyCyclePWM(PWM_PIN_IR, 50) < 0)            printf("ERROR: Failed to set IR PWM to 50 \r\n");    // PWM for IR-LED
@@ -563,7 +568,7 @@ int freefallDelay = 100;        // in ms
         case probeMoving:   
             printf("--- State Probe Moving to Location. \r\n");
             state = probeMoving;
-            float accel = ReadAccelFromArduino();
+            accel = ReadAccelFromArduino();
             if (accel >= -0.2 && accel <= 0.2){
                 printf("First freefall event detected... \r\n");
                 delay(freefallDelay);
@@ -586,13 +591,14 @@ int freefallDelay = 100;        // in ms
             printf("Set Measurement PWM... \r\n");
             if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare data file name \r\n");
             if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set measurement PWM to 50 \r\n");      // PWM for Measurement
+	delay(200);
             state = deceleration;
             break;
 
         case deceleration:  
             printf("--- State deceleration. Probe is moving vertically... \r\n");
             state = deceleration;
-            float accel = ReadAccelFromArduino();
+            accel = ReadAccelFromArduino();
             if (accel >= 0.95 && accel <= 1.05){
                 printf("First deceleration event detected... \r\n");
                 delay(freefallDelay);
@@ -612,11 +618,11 @@ int freefallDelay = 100;        // in ms
 
         case stop:          
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
-            printf("Disable Measurement PWM...")
+            printf("Disable Measurement PWM...");
             if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)       printf("ERROR: Failed to set measurement PWM to 0 \r\n");
 
             state = stop;
-            float accel = ReadAccelFromArduino();
+            accel = ReadAccelFromArduino();
             if (accel <= 0.95|| accel >= 1.05){
                 // Started moving upwards
                 state = probeRecovery;
@@ -633,10 +639,12 @@ int freefallDelay = 100;        // in ms
             if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
             sleep(recordingLength);      // Wait until recording is over
             printf("Finished gathering data and recording \r\n");
-            state = probeMoving;            
+	    return 0;
+            state = probeMoving;
             break;
         default:       state = probeInit;     break;
     }
+}
 #endif
 
 

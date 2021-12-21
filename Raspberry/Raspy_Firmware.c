@@ -20,7 +20,7 @@
 #include <string.h>         // Modify File name
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#define DEBUG
+//#define DEBUG
 //#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -74,7 +74,7 @@
 enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRecovery };
 enum ProbeState state = probeInit;
 
-int recordingLength = 5;       // in sec
+int recordingLength = 2;       // in sec
 
 int fd_i2c = -1;
 int fd_arduinoIMU = -1;
@@ -91,7 +91,7 @@ unsigned int pwmRange = 0;
 // Function Prototypes
 int OpenI2C();
 int ReadForceVecFromArduino();
-int SetCamLightOnArduino(unsigned int);
+int SetCamLightOnArduino(int);
 
 int InitArduinoIMU();
 float ReadAccelFromArduino();     // Return g
@@ -225,7 +225,7 @@ int ReadAccelVectorFromIMU() {
     // Sort Vector
 	
 	FILE *ofd;
-	int32_t n, i;
+	int32_t n, i=0;
 	u_int8_t k = 0;
 	u_int32_t bytes;
 	u_int8_t buff[256];
@@ -269,7 +269,7 @@ int ReadAccelVectorFromIMU() {
 		while (i<4096)
 		{
 			ioctl(sfd, FIONREAD, &bytes);
-			if (bytes >0 )
+			if (bytes>=6 )
 			{
 				// Read what we can
 				n = read(sfd, buff, 6);
@@ -286,7 +286,7 @@ int ReadAccelVectorFromIMU() {
 
 					buff[n]='\0';
 					accelVec[i] = atof(buff);
-					printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
+					// printf("%s, AccelVec: %f\r\n",buff,accelVec[i]);
 
 					
 
@@ -301,7 +301,7 @@ int ReadAccelVectorFromIMU() {
     return 0;
 }
 
-int SetCamLightOnArduino(unsigned int valuePercent) {      
+int SetCamLightOnArduino(int valuePercent) {      
     // value in range of 0...100 is equal to percent
     // Arduino receives 0...255 where a minimum voltage of 3V is included
     printf("Set light to %d percent... \r\n", valuePercent);
@@ -318,8 +318,8 @@ int SetCamLightOnArduino(unsigned int valuePercent) {
             return -1;
     }
 
-    unsigned int valueToArduino = 230;  // Equal to 0% lightning -> minimum Voltage of LED needed
-    valueToArduino = valueToArduino + 0.25 * valuePercent;
+    int valueToArduino = 0;  // Equal to 0% lightning -> minimum Voltage of LED needed 230
+    valueToArduino = valueToArduino + 2.55 * valuePercent;
     int actual = write(fd_i2c, &valueToArduino, sizeof(valueToArduino));
     if (actual != sizeof(valueToArduino)) {
 //write() returns the number of bytes actually written, if it doesn't match then an erro$
@@ -342,8 +342,8 @@ int StartCamRecording() {
     printf("Start Video Recording...\r\n");
 
     // Prepare Filename
-    char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.mjpg";
-    sprintf(fileName, "Data/%d-%02d-%02d_%02d-%02d-%02d.mjpg", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    char fileName[] = "Data/yyyy-mm-dd_hh-mm-ss.avi";
+    sprintf(fileName, "Data/%d-%02d-%02d_%02d-%02d-%02d.avi", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 
     // Prepare Command
@@ -513,9 +513,20 @@ int main() {
     if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
     if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
     if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
+    if (InitArduinoIMU() <0)        printf("ERROR: Arduino IMU failed\r\n");
 
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
-   // if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(10) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(20) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(30) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(40) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(60) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(70) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(80) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(90) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+    if (SetCamLightOnArduino(100) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Raspy Initialization is done \r\n ");
     
     printf("Start PWM for Measurement \r\n");
@@ -526,16 +537,16 @@ int main() {
     
     printf("Measurement Done \r\n");
     if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)           printf("ERROR: Failed to set Meas PWM to 0 \r\n");
-   // if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
+    if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
     if (ReadAccelVectorFromIMU() < 0)                   printf("ERROR: Failed to read accel vec from IMU \r\n");
     if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
     
-    // printf("Start Cam Recording \r\n");
-    // if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
-    // if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
+     printf("Start Cam Recording \r\n");
+     if (SetCamLightOnArduino(50) < 0)                    printf("ERROR: Failed to set cam light 50 \r\n");
+     if (StartCamRecording() < 0)                        printf("ERROR: Failed to start cam recording \r\n");
 
-    // sleep(recordingLength);
- //   if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
+     sleep(recordingLength);
+    if (SetCamLightOnArduino(0) < 0)                    printf("ERROR: Failed to set cam light 0 \r\n");
     printf("Finished cam Recording \r\n");   
 
 
@@ -544,6 +555,9 @@ int main() {
 
  #else
 int freefallDelay = 100;        // in ms
+float accel;
+
+while(1) {
     switch (state) {
         case probeInit:  
             printf("Raspy Firmware is starting up... \r\n");  
@@ -553,6 +567,7 @@ int freefallDelay = 100;        // in ms
             if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
             if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
             if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
+	        if (InitArduinoIMU() <0)        printf("ERROR: Arduino IMU failed\r\n");
 
             printf("Set PWM signals... \r\n");
             if (SetDutyCyclePWM(PWM_PIN_IR, 50) < 0)            printf("ERROR: Failed to set IR PWM to 50 \r\n");    // PWM for IR-LED
@@ -563,7 +578,7 @@ int freefallDelay = 100;        // in ms
         case probeMoving:   
             printf("--- State Probe Moving to Location. \r\n");
             state = probeMoving;
-            float accel = ReadAccelFromArduino();
+            accel = ReadAccelFromArduino();
             if (accel >= -0.2 && accel <= 0.2){
                 printf("First freefall event detected... \r\n");
                 delay(freefallDelay);
@@ -586,13 +601,14 @@ int freefallDelay = 100;        // in ms
             printf("Set Measurement PWM... \r\n");
             if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare data file name \r\n");
             if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set measurement PWM to 50 \r\n");      // PWM for Measurement
+delay(200);
             state = deceleration;
             break;
 
         case deceleration:  
             printf("--- State deceleration. Probe is moving vertically... \r\n");
             state = deceleration;
-            float accel = ReadAccelFromArduino();
+            accel = ReadAccelFromArduino();
             if (accel >= 0.95 && accel <= 1.05){
                 printf("First deceleration event detected... \r\n");
                 delay(freefallDelay);
@@ -612,11 +628,11 @@ int freefallDelay = 100;        // in ms
 
         case stop:          
             printf("--- State Probe stoped moving. Prepare for Recovery. \r\n");
-            printf("Disable Measurement PWM...")
+            printf("Disable Measurement PWM... \r\n");
             if (SetDutyCyclePWM(PWM_PIN_MEAS, 0) < 0)       printf("ERROR: Failed to set measurement PWM to 0 \r\n");
 
             state = stop;
-            float accel = ReadAccelFromArduino();
+            accel = ReadAccelFromArduino();
             if (accel <= 0.95|| accel >= 1.05){
                 // Started moving upwards
                 state = probeRecovery;
@@ -633,10 +649,12 @@ int freefallDelay = 100;        // in ms
             if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
             sleep(recordingLength);      // Wait until recording is over
             printf("Finished gathering data and recording \r\n");
-            state = probeMoving;            
+// return 0;
+            state = probeMoving;
             break;
         default:       state = probeInit;     break;
     }
+}
 #endif
 
 

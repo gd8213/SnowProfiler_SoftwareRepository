@@ -29,7 +29,8 @@ int pwmInterruptPin = 9;   // D6 - https://www.arduino.cc/reference/de/language/
 int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables
-float forceVector[FORCE_SIZE] = {-1};
+float defaultForce = -66;
+float forceVector[FORCE_SIZE] = {defaultForce};
 ProbeState state = probeInit;
 int syncIndex = 0;                  // Stores the index of synchronization -> IR Sensor
 int currentForceIndex = 0;          // Stores the index where the measurement should be stored
@@ -67,6 +68,10 @@ void setup() {
   pinMode(analogForcePin, INPUT);
   analogReadResolution(10);   // Set Resolution of Force sensor to max 10 Bit
   // ATTENTION only on Domes Laptop the ADC speed is increased (see above). Default 1.2kHz
+  analogReference(AR_EXTERNAL);
+  for (int i = 0; i < FORCE_SIZE; i++) {
+    forceVector[i] = defaultForce;
+  }
 
   // Sync Pins
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
@@ -162,7 +167,7 @@ void ISR_PwmInterrupt() {
 
 void SendToRaspyEvent() {
   // Send 32 values each time what is equal to 128 Bytes
-  static int packetIndex = -1;
+  static int packetIndex = -1;        // State -> This function is called multiple times in sequece
   int valuesPerPacket = 32;
 
   if (packetIndex < 0) {
@@ -187,6 +192,12 @@ void SendToRaspyEvent() {
   if (packetIndex >= FORCE_SIZE/valuesPerPacket) {
     Serial.print("Finished Transmission to Raspy. \r\n");  
     packetIndex = -1;
+
+    // Clear Force Vector
+    currentForceIndex = 0;
+    for (int i = 0; i < FORCE_SIZE; i++) {
+      forceVector[i] = defaultForce;
+    }
   }
 
   return;

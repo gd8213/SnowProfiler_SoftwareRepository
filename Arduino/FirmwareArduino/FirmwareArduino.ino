@@ -25,7 +25,7 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 // Pin Setup
 int analogForcePin = A0;    // A0 - Use whole name for analog pins
 int syncSignalPin = 3;      // D3 - Just use number for digital pins
-int pwmInterruptPin = 6;   // D9 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
+int pwmInterruptPin = 9;   // D6 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
 int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables
@@ -70,7 +70,7 @@ void setup() {
 
   // Sync Pins
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
-  pinMode(pwmInterruptPin, INPUT_PULLDOWN);
+  pinMode(pwmInterruptPin, INPUT_PULLDOWN);   //INPUT_PULLDOWN
   TogglePwmInterrupt(true);                   // Enable PWM Interrupt
 
   // Camera light
@@ -103,6 +103,9 @@ void loop() {
 
     // set the LED with the ledState of the variable:
     digitalWrite(LED_BUILTIN, ledState);
+
+Serial.print("I live \r\n");
+delay(1000);
   }  
 }
 
@@ -118,16 +121,6 @@ float ReadForceSensor() {
 
   // Store in Array
   forceVector[currentForceIndex] = analogValue;
-
-/*
-  // Check if Sync Signal was set
-  static PinStatus oldSync = LOW;
-  PinStatus syncSignal = digitalRead(syncSignalPin);
-  if (oldSync != syncSignal && syncSignal == HIGH) {
-    syncIndex = currentForceIndex;
-  }
-  oldSync = syncSignal;
-*/
 
   // Prepare Index for next measurement
   currentForceIndex++;                        
@@ -153,7 +146,7 @@ float GetForceFromMeasurement(int rawValue) {
 void TogglePwmInterrupt(bool enable) {
   // Enable or Disable PWM Interrupts
   if (enable == true) {
-    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, RISING);    // RISING, CHANGE
+    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, CHANGE);    // RISING, CHANGE
   } else {
      detachInterrupt(digitalPinToInterrupt(pwmInterruptPin));
   }

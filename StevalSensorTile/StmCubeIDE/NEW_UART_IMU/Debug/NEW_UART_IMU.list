@@ -522,11 +522,11 @@ int main(void)
  80005e0:	f000 fa9c 	bl	8000b1c <lsm6dsm_acceleration_raw_get>
 		  			// acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
 		  			// acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
-		  			acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
+		  			acc_z=lsm6dsm_from_fs16g_to_mg(data_raw_acceleration[2]);
  80005e4:	4b19      	ldr	r3, [pc, #100]	; (800064c <main+0xe4>)
  80005e6:	f9b3 3004 	ldrsh.w	r3, [r3, #4]
  80005ea:	4618      	mov	r0, r3
- 80005ec:	f000 fa7e 	bl	8000aec <lsm6dsm_from_fs4g_to_mg>
+ 80005ec:	f000 fa7e 	bl	8000aec <lsm6dsm_from_fs16g_to_mg>
  80005f0:	eef0 7a40 	vmov.f32	s15, s0
  80005f4:	4b16      	ldr	r3, [pc, #88]	; (8000650 <main+0xe8>)
  80005f6:	edc3 7a00 	vstr	s15, [r3]
@@ -1297,8 +1297,8 @@ void lsm6dsm_init(void)
 	// ODR_XL set to 6.66kHz
 	// FS of accelerometer set to +- 4g
 	// BW0_XL BW set to 400Hz
-	bufp=ODR_6660Hz|FS_4g; // 0b10101000;
- 8000ab4:	23a8      	movs	r3, #168	; 0xa8
+	bufp=ODR_6660Hz|FS_16g; // 0b10101000;
+ 8000ab4:	23a4      	movs	r3, #164	; 0xa4
  8000ab6:	70bb      	strb	r3, [r7, #2]
 	reg=LSM6DS3H_REG_CTRL1_XL;
  8000ab8:	2310      	movs	r3, #16
@@ -1333,23 +1333,23 @@ void lsm6dsm_init(void)
  8000ae6:	bd80      	pop	{r7, pc}
  8000ae8:	200020b8 	.word	0x200020b8
 
-08000aec <lsm6dsm_from_fs4g_to_mg>:
+08000aec <lsm6dsm_from_fs16g_to_mg>:
 {
-  return ((float)lsb * 0.061f);
+  return ((float)lsb * 0.244f);
 }
 
-float lsm6dsm_from_fs4g_to_mg(int16_t lsb)
+float lsm6dsm_from_fs16g_to_mg(int16_t lsb)
 {
  8000aec:	b480      	push	{r7}
  8000aee:	b083      	sub	sp, #12
  8000af0:	af00      	add	r7, sp, #0
  8000af2:	4603      	mov	r3, r0
  8000af4:	80fb      	strh	r3, [r7, #6]
-  return ((float)lsb * 0.122f);
+  return ((float)lsb * 0.488f);
  8000af6:	f9b7 3006 	ldrsh.w	r3, [r7, #6]
  8000afa:	ee07 3a90 	vmov	s15, r3
  8000afe:	eef8 7ae7 	vcvt.f32.s32	s15, s15
- 8000b02:	ed9f 7a05 	vldr	s14, [pc, #20]	; 8000b18 <lsm6dsm_from_fs4g_to_mg+0x2c>
+ 8000b02:	ed9f 7a05 	vldr	s14, [pc, #20]	; 8000b18 <lsm6dsm_from_fs16g_to_mg+0x2c>
  8000b06:	ee67 7a87 	vmul.f32	s15, s15, s14
 }
  8000b0a:	eeb0 0a67 	vmov.f32	s0, s15
@@ -1357,7 +1357,7 @@ float lsm6dsm_from_fs4g_to_mg(int16_t lsb)
  8000b10:	46bd      	mov	sp, r7
  8000b12:	f85d 7b04 	ldr.w	r7, [sp], #4
  8000b16:	4770      	bx	lr
- 8000b18:	3df9db23 	.word	0x3df9db23
+ 8000b18:	3ef9db23 	.word	0x3ef9db23
 
 08000b1c <lsm6dsm_acceleration_raw_get>:
 	return 0;

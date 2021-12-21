@@ -209,9 +209,9 @@ Discarded input sections
                 0x0000000000000000       0x48 ./Core/Src/main.o
  .text.lsm6dsm_from_fs2g_to_mg
                 0x0000000000000000       0x30 ./Core/Src/main.o
- .text.lsm6dsm_from_fs8g_to_mg
+ .text.lsm6dsm_from_fs4g_to_mg
                 0x0000000000000000       0x30 ./Core/Src/main.o
- .text.lsm6dsm_from_fs16g_to_mg
+ .text.lsm6dsm_from_fs8g_to_mg
                 0x0000000000000000       0x30 ./Core/Src/main.o
  .text.lsm6dsm_from_fs500dps_to_mdps
                 0x0000000000000000       0x30 ./Core/Src/main.o
@@ -3761,9 +3761,9 @@ LOAD c:/st/stm32cubeide_1.7.0/stm32cubeide/plugins/com.st.stm32cube.ide.mcu.exte
  .text.lsm6dsm_init
                 0x0000000008000a94       0x58 ./Core/Src/main.o
                 0x0000000008000a94                lsm6dsm_init
- .text.lsm6dsm_from_fs4g_to_mg
+ .text.lsm6dsm_from_fs16g_to_mg
                 0x0000000008000aec       0x30 ./Core/Src/main.o
-                0x0000000008000aec                lsm6dsm_from_fs4g_to_mg
+                0x0000000008000aec                lsm6dsm_from_fs16g_to_mg
  .text.lsm6dsm_acceleration_raw_get
                 0x0000000008000b1c       0x98 ./Core/Src/main.o
                 0x0000000008000b1c                lsm6dsm_acceleration_raw_get

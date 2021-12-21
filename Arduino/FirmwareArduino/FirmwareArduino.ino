@@ -25,11 +25,11 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 // Pin Setup
 int analogForcePin = A0;    // A0 - Use whole name for analog pins
 int syncSignalPin = 3;      // D3 - Just use number for digital pins
-int pwmInterruptPin = 9;   // D9 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
+int pwmInterruptPin = 6;   // D9 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
 int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables
-float forceVector[FORCE_SIZE];
+float forceVector[FORCE_SIZE] = {-1};
 ProbeState state = probeInit;
 int syncIndex = 0;                  // Stores the index of synchronization -> IR Sensor
 int currentForceIndex = 0;          // Stores the index where the measurement should be stored
@@ -153,7 +153,7 @@ float GetForceFromMeasurement(int rawValue) {
 void TogglePwmInterrupt(bool enable) {
   // Enable or Disable PWM Interrupts
   if (enable == true) {
-    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, CHANGE);    // RISING, CHANGE
+    attachInterrupt(digitalPinToInterrupt(pwmInterruptPin), ISR_PwmInterrupt, RISING);    // RISING, CHANGE
   } else {
      detachInterrupt(digitalPinToInterrupt(pwmInterruptPin));
   }

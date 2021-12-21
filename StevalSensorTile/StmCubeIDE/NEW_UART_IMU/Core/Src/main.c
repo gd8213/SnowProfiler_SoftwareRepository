@@ -168,7 +168,7 @@ int main(void)
 		  			lsm6dsm_acceleration_raw_get(data_raw_acceleration);
 		  			// acc_x=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[0]);
 		  			// acc_y=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[1]);
-		  			acc_z=lsm6dsm_from_fs4g_to_mg(data_raw_acceleration[2]);
+		  			acc_z=lsm6dsm_from_fs16g_to_mg(data_raw_acceleration[2]);
 		  			// accel_data_x[i]=(int16_t)acc_x;
 		  			// accel_data_y[i]=(int16_t)acc_y;
 		  			accel_data_z[i]=(int16_t)acc_z;
@@ -374,7 +374,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PWMI_RAS_Pin */
   GPIO_InitStruct.Pin = PWMI_RAS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(PWMI_RAS_GPIO_Port, &GPIO_InitStruct);
 
@@ -477,7 +477,7 @@ void lsm6dsm_init(void)
 	// ODR_XL set to 6.66kHz
 	// FS of accelerometer set to +- 4g
 	// BW0_XL BW set to 400Hz
-	bufp=ODR_6660Hz|FS_4g; // 0b10101000;
+	bufp=ODR_6660Hz|FS_16g; // 0b10101000;
 	reg=LSM6DS3H_REG_CTRL1_XL;
 	lsm6ds3_write(&hspi2, reg, &bufp, len);
 

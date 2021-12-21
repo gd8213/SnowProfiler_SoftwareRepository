@@ -170,6 +170,7 @@ int ReadForceVecFromArduino() {
         if (startIndex >= FORCE_SIZE) {
             startIndex = 0;
         } 
+	printf("forceVec: %f, tempVec: %f",forceVec[i],tempVec[startIndex]);
 
         forceVec[i] = tempVec[startIndex];
         startIndex++;  
@@ -567,7 +568,7 @@ while(1) {
             if (OpenI2C() < 0)              printf("ERROR: OpenI2C failed \r\n");
             if (InitPWM() < 0)              printf("ERROR: InitPWM failed \r\n");
             if (InitIMU() < 0)              printf("ERROR: InitIMU failed \r\n");
-	        if (InitArduinoIMU() <0)        printf("ERROR: Arduino IMU failed\r\n");
+	    if (InitArduinoIMU() <0)        printf("ERROR: Arduino IMU failed\r\n");
 
             printf("Set PWM signals... \r\n");
             if (SetDutyCyclePWM(PWM_PIN_IR, 50) < 0)            printf("ERROR: Failed to set IR PWM to 50 \r\n");    // PWM for IR-LED

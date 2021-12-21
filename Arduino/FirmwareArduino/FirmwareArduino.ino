@@ -25,11 +25,11 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 // Pin Setup
 int analogForcePin = A0;    // A0 - Use whole name for analog pins
 int syncSignalPin = 3;      // D3 - Just use number for digital pins
-int pwmInterruptPin = 9;   // D9 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
+int pwmInterruptPin = 9;   // D6 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
 int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables
-float forceVector[FORCE_SIZE];
+float forceVector[FORCE_SIZE] = {-1};
 ProbeState state = probeInit;
 int syncIndex = 0;                  // Stores the index of synchronization -> IR Sensor
 int currentForceIndex = 0;          // Stores the index where the measurement should be stored
@@ -70,7 +70,7 @@ void setup() {
 
   // Sync Pins
   pinMode(syncSignalPin, INPUT_PULLDOWN);   // Default 0
-  pinMode(pwmInterruptPin, INPUT_PULLDOWN);
+  pinMode(pwmInterruptPin, INPUT_PULLDOWN);   //INPUT_PULLDOWN
   TogglePwmInterrupt(true);                   // Enable PWM Interrupt
 
   // Camera light
@@ -103,6 +103,9 @@ void loop() {
 
     // set the LED with the ledState of the variable:
     digitalWrite(LED_BUILTIN, ledState);
+
+Serial.print("I live \r\n");
+delay(1000);
   }  
 }
 
@@ -119,16 +122,6 @@ float ReadForceSensor() {
   // Store in Array
   forceVector[currentForceIndex] = analogValue;
 
-/*
-  // Check if Sync Signal was set
-  static PinStatus oldSync = LOW;
-  PinStatus syncSignal = digitalRead(syncSignalPin);
-  if (oldSync != syncSignal && syncSignal == HIGH) {
-    syncIndex = currentForceIndex;
-  }
-  oldSync = syncSignal;
-*/
-
   // Prepare Index for next measurement
   currentForceIndex++;                        
   if (currentForceIndex >= FORCE_SIZE) {
@@ -142,11 +135,11 @@ float ReadForceSensor() {
 
 float GetForceFromMeasurement(int rawValue) {
   // Voltage from 0-3.3V will map to 0-1023 (10Bit resolution). ATTENTION connect only 3.3V
-  //float maxVoltage = 3.3;
+  float maxVoltage = 3.3;
 
-  //float voltage = (float) rawValue * maxVoltage / 1023;
-  //float force = maxForceRange * voltage / maxVoltage;
-  float force = maxForceRange * (float) rawValue / 1023.0;
+  float voltage = (float) rawValue * maxVoltage / 1023;
+  float force = maxForceRange * voltage / maxVoltage;
+  //float force = maxForceRange * (float) rawValue / 1023.0;
   return force;
 }
 
@@ -207,7 +200,3 @@ void GetLightFromRaspy(int howMany) {
 
     analogWrite(analogCamLightPin, value);    // analogWrite: 0.255
 }
-
-
-
-

@@ -569,7 +569,7 @@ int main() {
 
 
  #else
-int freefallDelay = 100;        // in ms
+int freefallDelay = 75;        // in ms
 float accel;
 
 while(1) {
@@ -594,15 +594,15 @@ while(1) {
         case probeMoving:   
             state = probeMoving;
             accel = ReadAccelFromArduino();
-            if (accel >= -0.2 && accel <= 0.2){
+            if (accel >= -0.3 && accel <= 0.3){
                 printf("First freefall event detected... \r\n");
                 delay(freefallDelay);
                 accel = ReadAccelFromArduino();
-                if (accel >= -0.2 && accel <= 0.2) {
+                if (accel >= -0.3 && accel <= 0.3) {
                     printf("Second freefall event detected... \r\n");
                     delay(freefallDelay);
                     accel = ReadAccelFromArduino();
-                    if (accel >= -0.2 && accel <= 0.2) {
+                    if (accel >= -0.3 && accel <= 0.3) {
                         // Freefall detected
                         printf("FREEFALL confirmed... \r\n");
                         state = freeFall;

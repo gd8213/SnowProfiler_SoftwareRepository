@@ -22,7 +22,7 @@
 #include "LibArduino.c"
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#define DEBUG
+//#define DEBUG
 //#define RASPY_4         // Remove on CM3 !!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -48,7 +48,7 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 enum ProbeState state = probeInit;
 enum ProbeState oldState = probeRecovery;
 
-int recordingLength = 2;       // in sec
+int recordingLength = 10;       // in sec
 
 
 int fd_ArduinoI2c = -1;         // I2C to Arduino -> read force
@@ -615,7 +615,7 @@ while(1) {
             printf("Start Measurement PWM... \r\n");
             if (PrepareDataFileName() < 0)                      printf("ERROR: Failed to prepare data file name \r\n");
             if (SetDutyCyclePWM(PWM_PIN_MEAS, 50) < 0)          printf("ERROR: Failed to set measurement PWM to 50 \r\n");      // PWM for Measurement
-delay(200);
+delay(500);     // minimum measurement time
             state = deceleration;
             break;
 
@@ -653,6 +653,7 @@ delay(200);
 
         case probeRecovery: 
             printf("Start Cam recording... \r\n");
+            if (SetCamLightOnArduino(100) < 0)                  printf("ERROR: Failed to set cam light 100 \r\n");
             if (StartCamRecording() < 0)                        printf("ERRRO: Failed to start Cam recording \r\n");
             printf("Read measurement data... \r\n");
             if (ReadForceVecFromArduino() < 0)                  printf("ERROR: Failed to read force vec from arduino \r\n");
@@ -660,6 +661,7 @@ delay(200);
             if (SaveDataToCSV() < 0)                            printf("ERROR: Failed to save data to CSV \r\n");
             sleep(recordingLength);      // Wait until recording is over
             printf("Finished gathering data and recording \r\n");
+            if (SetCamLightOnArduino(0) < 0)                  printf("ERROR: Failed to set cam light 0 \r\n");
             state = probeMoving;
             break;
         default:       state = probeInit;     break;

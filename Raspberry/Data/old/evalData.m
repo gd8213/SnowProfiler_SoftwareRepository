@@ -3,7 +3,8 @@ close all
 clc
 
 
-filename='2021-12-21_12-38-33.csv';
+filename='ShowThis.csv';
+% filename='2021-12-21_11-43-53.csv';
 [t, acc, f] = importfile(filename, [2, Inf]);
 
 
@@ -15,11 +16,13 @@ filename='2021-12-21_12-38-33.csv';
 
 figure
 subplot(2,1,1)
-plot(t,acc)
+plot(t,acc/1000)
 grid on
-legend('Accelerometer')
+legend('Accelerometer in g')
 
 subplot(2,1,2)
 plot(t,f)
 grid on
-legend('Force Sensor')
+legend('Force in N')
+
+

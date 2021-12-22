@@ -48,7 +48,7 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 enum ProbeState state = probeInit;
 enum ProbeState oldState = probeRecovery;
 
-int recordingLength = 10;       // in sec
+int recordingLength = 20;       // in sec
 
 
 int fd_ArduinoI2c = -1;         // I2C to Arduino -> read force

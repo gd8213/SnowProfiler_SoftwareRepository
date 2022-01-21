@@ -40,7 +40,7 @@ clear folderName folderContent i j ext csvFile velocity acc2
 PlotOverview(numberOfTests, tAccel,accel, tForce, force, position);
 
 % Detailed Test
-% PlotTest(1, tAccel, accel, tForce, force, position)
+ PlotTest(1, tAccel, accel, tForce, force, position)
 % PlotTest(2, tAccel, accel, tForce, force, position)
 % PlotTest(3, tAccel, accel, tForce, force, position)
 % PlotTest(4, tAccel, accel, tForce, force, position)

@@ -145,9 +145,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	HAL_GPIO_WritePin(GPIOG, GPIO_PIN_12, GPIO_PIN_SET); // Switch on LED
 	i=0;
-	uint8_t result=0;
-  	uint8_t bufp=0x00;
-  	uint8_t reg=0x1e; // register of IMU where DRDY signal can be found
+//		uint8_t result=0;
+//  	uint8_t bufp=0x00;
+//  	uint8_t reg=0x1e; // register of IMU where DRDY signal can be found
 
   while (1)
   {
@@ -159,8 +159,8 @@ int main(void)
 //			lsm6ds3_read(&hspi2, reg, &bufp, 1);
 //			result=isKthBitSet(bufp, 1);
 
-		  	if(1)
-		  	{
+// 		  	if(1)
+//		  	{
 		  		// interrupt if PWM occurs
 		  		if(i<4096)
 		  		{
@@ -179,7 +179,7 @@ int main(void)
 		  		}
 		  		else{
 		  			i=0;
-		  		}
+//		  		}
 
 		  	}
 	  }
@@ -405,6 +405,7 @@ uint8_t sftwRESET(void)
 	lsm6ds3_read(&hspi2, reg, &read_reg, len);
 	bufp&=read_reg;
 	lsm6ds3_write(&hspi2,reg, &bufp, len);
+	return 0;
 }
 
 
@@ -432,8 +433,8 @@ void whoami(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	// __NOP(); // used to debug the Callback
-	int size;
-	char data_s[256];
+	int 	size;
+	char 	data_s[256];
 	uint16_t length_data_array=4096;
 
 	for(int j=0; j<length_data_array;j++)
@@ -464,7 +465,6 @@ void lsm6dsm_init(void)
 {
 	uint32_t len =1;
 	uint8_t bufp;
-	uint8_t read_reg;
 	// LSM6DS3H_REG_CTRL3_C
 	// set 3-wire SPI mode
 	// set block data update

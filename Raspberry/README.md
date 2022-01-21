@@ -2,7 +2,7 @@
 
 Hello User,
 
-in this folder the Raspberry code and measurement results are placed. 
+in this folder the  [Raspberry code](Raspy_Firmware.c) and [measurement results](Data) are placed. 
 
 ## Raspy_Firmware.c
 This is the main file of the Raspberry Code. It includes the `LibArduino.c` file, where some registers of the Arduino IMU are defined.
@@ -16,3 +16,5 @@ and to run it:
 ```
 ./Raspby_Firmware
 ```
+
+

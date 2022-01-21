@@ -7,8 +7,9 @@
 // Synchronization with IR-Signal: D3
 
 // ATTENTION only on Domes Laptop !!!!!!!!!!!!!!!!!!!!
-// ADC Speed increase from 1.2kHz to 2.38kHz
+// ADC Speed increase from 1.2kHz 
 // https://forum.arduino.cc/t/nano-iot-33-analogread-is-slower-than-expected/635209
+// Use ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV128 in C:\Users\UserName\AppData\Local\Arduino15\packages\arduino\hardware\samd\1.8.4\cores\arduino\wiring.c
 
 
 #include <Wire.h>               // I2C Communication with Raspberry
@@ -25,7 +26,7 @@ enum ProbeState { probeInit, probeMoving, freeFall, deceleration, stop, probeRec
 // Pin Setup
 int analogForcePin = A0;    // A0 - Use whole name for analog pins
 int syncSignalPin = 3;      // D3 - Just use number for digital pins
-int pwmInterruptPin = 9;   // D6 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
+int pwmInterruptPin = 9;   // D9 - https://www.arduino.cc/reference/de/language/functions/external-interrupts/attachinterrupt/
 int analogCamLightPin = A2; // A2 - Analog Value to set lightning of camera
 
 // Global variables

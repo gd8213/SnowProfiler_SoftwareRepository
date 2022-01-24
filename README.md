@@ -37,6 +37,7 @@ run executable
 ```
 
 if everything is done correct, the output should look like the following example. Now the measurements can be done without further interventions in the software.
+The results should be saved with the date and time in the [data folder](Raspberry/Data).
 
 ```
 -----------------------------

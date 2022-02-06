@@ -2,7 +2,7 @@
  
 Hello User,
 
-in this folder the  Steval Sensor Tile (IMU) code are placed. 
+in this folder the  Steval Sensor Tile (IMU) code is placed. 
 
 - Used IDE STM32CubeIDE 1.7.0
 

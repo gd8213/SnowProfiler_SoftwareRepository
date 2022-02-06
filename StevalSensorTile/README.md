@@ -13,7 +13,7 @@ in this folder the  Steval Sensor Tile (IMU) code is placed.
 	- when while loop is reached red LED is switched on
 	- in while loop MCU is waiting for rising edge of arduino PWM
 	- when rising edge occurs data is saved to accel_data_z vector
-	- whenever the master (arduino) requires data via UART the MCU(Sensortile) is sending
+	- whenever the master (MyPiBoard) requires data via UART the MCU(Sensortile) is sending
 		the accel_data_z vector to the master
 
 - how to flash the code to Sensortile
